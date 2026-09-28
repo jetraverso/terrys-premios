@@ -91,10 +91,16 @@ create table if not exists public.premios_jugadas (
   canjeado     timestamptz,
   canjeado_por text,
   origen       text,
-  pedido       text                           -- nº de pedido de Glovo (sin espacios, en mayúsculas)
+  pedido       text,                          -- nº de pedido de Glovo: los 3 números, sin el #
+  dia          date not null default ((now() at time zone 'Europe/Madrid')::date)  -- día de la jugada (hora de España)
 );
 alter table public.premios_jugadas add column if not exists pedido text;
-create unique index if not exists premios_jugadas_pedido_idx on public.premios_jugadas (pedido);
+alter table public.premios_jugadas add column if not exists dia date not null default ((now() at time zone 'Europe/Madrid')::date);
+update public.premios_jugadas set dia = (creado at time zone 'Europe/Madrid')::date
+ where dia <> (creado at time zone 'Europe/Madrid')::date;
+-- Glovo repite los números de pedido (# y 3 números): cada número juega una vez por día
+drop index if exists public.premios_jugadas_pedido_idx;
+create unique index if not exists premios_jugadas_pedido_dia_idx on public.premios_jugadas (pedido, dia);
 create index if not exists premios_jugadas_tel_idx    on public.premios_jugadas (telefono, creado desc);
 create index if not exists premios_jugadas_creado_idx on public.premios_jugadas (creado desc);
 
@@ -140,11 +146,11 @@ end $$;
 -- ---------------------------------------------------------------
 -- 6. Jugar: lo llama la página del QR. El resultado se decide acá
 --    (en el servidor), así nadie puede hacer trampa desde el navegador.
---    Cada número de pedido juega una sola vez.
+--    Cada número de pedido de Glovo (# y 3 números) juega una vez por día.
 -- ---------------------------------------------------------------
 create or replace function public.premios_pedido(p text)
 returns text language sql immutable as $$
-  select nullif(regexp_replace(upper(coalesce(p, '')), '[^A-Z0-9]', '', 'g'), '');
+  select nullif(regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g'), '');
 $$;
 
 drop function if exists public.premios_jugar(text, text, text, boolean, text);
@@ -178,7 +184,7 @@ begin
   if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
   if length(nom) < 2 then return jsonb_build_object('estado', 'error', 'campo', 'nombre'); end if;
   if tel is null then return jsonb_build_object('estado', 'error', 'campo', 'telefono'); end if;
-  if ped is null or length(ped) not between 4 and 20 then
+  if ped is null or ped !~ '^[0-9]{3}$' then
     return jsonb_build_object('estado', 'error', 'campo', 'pedido');
   end if;
   if mail is not null and mail !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
@@ -186,13 +192,13 @@ begin
   end if;
 
   -- Una jugada a la vez por pedido y por teléfono (dos toques rápidos no juegan dos veces)
-  perform pg_advisory_xact_lock(hashtext('premios:pedido:' || ped));
+  perform pg_advisory_xact_lock(hashtext('premios:pedido:' || ped || ':' || hoy));
   perform pg_advisory_xact_lock(hashtext('premios:' || tel));
 
   -- Pedido ya jugado. Si es la misma persona (mismo móvil y nombre), se le
   -- vuelve a mostrar su premio si tiene uno sin canjear.
   select j.* into pend from premios_jugadas j join premios_jugadores p using (telefono)
-    where j.pedido = ped;
+    where j.pedido = ped and j.dia = hoy;
   if pend.id is not null then
     return jsonb_build_object('estado', 'pedido_usado',
       'pendiente', case when pend.telefono = tel and lower((select nombre from premios_jugadores where telefono = tel)) = lower(nom)
@@ -264,8 +270,8 @@ begin
     end if;
   end if;
 
-  insert into premios_jugadas (telefono, rodillos, simbolo, premio, codigo, vence, origen, pedido)
-  values (tel, rod, sim, prem, cod, vto, ori, ped);
+  insert into premios_jugadas (telefono, rodillos, simbolo, premio, codigo, vence, origen, pedido, dia)
+  values (tel, rod, sim, prem, cod, vto, ori, ped, hoy);
 
   update premios_jugadores
      set jugadas = jugadas + 1,

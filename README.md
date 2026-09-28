@@ -17,8 +17,8 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 ## Cómo funciona
 
 - **El resultado lo decide Supabase, no el navegador.** La página solo anima los rodillos hasta donde le dice el servidor, así nadie puede hacer trampa tocando el código de la página.
-- **Una tirada por cada pedido de Glovo.** Para jugar hay que poner el número de pedido, y cada número sirve una sola vez: si la misma persona vuelve a pedir, vuelve a jugar. Si alguien pone un pedido que ya jugó, le avisa (y si es el mismo cliente con un premio sin canjear, se lo vuelve a mostrar). El número se guarda sin espacios ni símbolos (`#123 456-789` y `123456789` son el mismo).
-- **Freno a pedidos inventados:** como el número no se puede comprobar contra Glovo, un mismo móvil puede jugar como mucho **3 veces por día** (se cambia en `premios_config`). En caja se ve el número de pedido de cada premio, así se puede comparar con los pedidos de Glovo antes de entregarlo.
+- **Una tirada por cada pedido de Glovo.** Para jugar hay que poner el número de pedido: en Glovo son **# y 3 números**. El `#` ya está puesto, así que el cliente solo escribe los 3 números. Como Glovo repite esos números, **cada número juega una vez por día** (a la hora de España): si la misma persona vuelve a pedir, vuelve a jugar. Si alguien pone un número que ya jugó ese día, le avisa (y si es el mismo cliente con un premio sin canjear, se lo vuelve a mostrar).
+- **Freno a pedidos inventados:** como el número no se puede comprobar contra Glovo, un mismo móvil puede jugar como mucho **3 veces por día** (se cambia en `premios_config`). En caja se ve el número de pedido y el día de cada premio, así se puede comparar con los pedidos de Glovo de ese día antes de entregarlo.
 - **El móvil** se guarda siempre igual (`600 11 12 22`, `+34600111222` y `0034600111222` son la misma persona) y en ese móvil la página recuerda los datos: la próxima vez solo hay que poner el pedido nuevo.
 - **Premios y chances** (se cambian en Supabase, ver abajo):
 
@@ -42,7 +42,7 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 ### En caja (`local.html`)
 
 1. El cliente muestra el código en el móvil. Se escribe en el recuadro (alcanza con las 5 letras, sin `T-`, en minúscula también) → **Buscar**.
-2. Sale en verde **Válido ✓** con el premio, el nombre y el número de pedido de Glovo. Para confirmar que es él, pedile los últimos 3 números del móvil (la página los muestra).
+2. Sale en verde **Válido ✓** con el premio, el nombre y el pedido de Glovo (`#482 · del 28/09/2026`): conviene mirar en Glovo que ese pedido exista ese día. Para confirmar que es él, pedile los últimos 3 números del móvil (la página los muestra).
 3. **Entregar y marcar canjeado.** Si ya estaba canjeado o vencido, lo dice en gris o amarillo y no deja canjearlo.
 4. Si se tocó por error, **Deshacer canje** (hasta 12 horas después).
 

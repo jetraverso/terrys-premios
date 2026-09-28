@@ -100,6 +100,13 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .as:empty{display:none}
 .btn.volver{text-align:center;text-decoration:none;margin-top:22px}
 .f .help{font-size:12px;color:var(--muted);margin-top:5px}
+.pedido-in{display:flex;align-items:center;width:100%;border:2px solid var(--ink);border-radius:12px;background:var(--paper);overflow:hidden}
+.pedido-in span{flex:none;align-self:stretch;display:grid;place-items:center;padding:0 14px;background:var(--ink);color:var(--paper);font-family:var(--display);font-size:32px;line-height:1}
+.f .pedido-in input[type=text]{width:100%;min-width:0;border:0;border-radius:0;padding:10px 14px;font-family:var(--display);font-size:32px;letter-spacing:.3em;line-height:1}
+.f .pedido-in input::placeholder{letter-spacing:.3em}
+.pedido-in:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+.f .pedido-in input[type=text]:focus{outline:0}
+.f.bad .pedido-in{border-width:3px;border-style:dashed}
 .f.bad .help{display:none}
 
 /* Pantallas bajas: todo un poco más chico para que "Premios" asome */
@@ -205,7 +212,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <tbody id="prizeList"></tbody>
   </table>
   <ul class="reglas">
-    <li>Una tirada por cada pedido de Glovo: el número de pedido sirve una sola vez.</li>
+    <li>Una tirada por cada pedido de Glovo, con el número de pedido (# y 3 números).</li>
     <li>El premio se canjea <b>solo en el local</b>, enseñando el código en caja.</li>
     <li id="rValidez">Válido 30 días desde que lo ganas. No se cambia por dinero.</li>
   </ul>
@@ -221,9 +228,9 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <p class="sub">Una tirada por cada pedido. Déjanos tus datos para guardarte el premio si ganas.</p>
     <div class="f" id="fPedido">
       <label for="pedido">Nº de pedido de Glovo</label>
-      <input type="text" id="pedido" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="Ej. 123456789" required>
-      <div class="help">Está en la app de Glovo, en el detalle de tu pedido.</div>
-      <div class="err">Escribe el número de pedido (al menos 4 letras o números).</div>
+      <div class="pedido-in"><span aria-hidden="true">#</span><input type="text" id="pedido" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="123" aria-describedby="pedidoHelp" required></div>
+      <div class="help" id="pedidoHelp">Son los 3 números que van después del # en tu pedido de Glovo.</div>
+      <div class="err">Escribe los 3 números de tu pedido (lo que va después del #).</div>
     </div>
     <div class="f" id="fNombre">
       <label for="nombre">Nombre</label>
@@ -429,16 +436,17 @@ $('#spin').onclick=()=>{
   }
   abrir('#formSheet');
 };
+$('#pedido').addEventListener('input',()=>{const v=$('#pedido').value.replace(/\D/g,'').slice(0,3);if(v!==$('#pedido').value)$('#pedido').value=v});
 ['#pedido','#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
 $('#priv').addEventListener('change',()=>$('#cPriv').classList.remove('bad'));
 $('#form').onsubmit=e=>{
   e.preventDefault();
-  const pedido=$('#pedido').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const pedido=$('#pedido').value.replace(/\D/g,'');
   const nombre=$('#nombre').value.trim().replace(/\s+/g,' ');
   const tel=normTel($('#tel').value);
   const email=$('#email').value.trim().toLowerCase();
   const okMail=!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-  const okPed=pedido.length>=4&&pedido.length<=20;
+  const okPed=/^\d{3}$/.test(pedido);
   marcar('#fPedido',!okPed);marcar('#fNombre',nombre.length<2);marcar('#fTel',!tel);marcar('#fMail',!okMail);
   $('#cPriv').classList.toggle('bad',!$('#priv').checked);
   if(!okPed||nombre.length<2||!tel||!okMail||!$('#priv').checked){
@@ -493,7 +501,7 @@ async function jugar(j){
     if(r.estado==='pedido_usado'){
       recordar(j);
       if(r.pendiente){const p={...r.pendiente,nombre:j.nombre};store.set('premio',p);pintarPendiente();mostrarPremio(p,false,'Ese pedido ya jugó')}
-      else mostrarMensaje('Ese pedido ya jugó','Cada número de pedido juega una sola vez. ¡Con tu próximo pedido tienes otra tirada!');
+      else mostrarMensaje('Ese pedido ya jugó','Hoy ya se jugó con ese número de pedido. Revisa que sea el tuyo, o prueba con tu próximo pedido.');
     }else if(r.estado==='tope_dia'){
       mostrarMensaje('Por hoy ya está','Llegaste al máximo de tiradas de hoy con este móvil. ¡Vuelve con tu próximo pedido!');
     }else if(r.estado==='espera'){
@@ -584,10 +592,10 @@ function demoJugar(j){
   const ahora=new Date(), hoy=ahora.toISOString().slice(0,10);
   const tel=normTel(j.telefono);
   if(!tel)return{estado:'error',campo:'telefono'};
-  const ped=String(j.pedido||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(ped.length<4||ped.length>20)return{estado:'error',campo:'pedido'};
+  const ped=String(j.pedido||'').replace(/\D/g,'');
+  if(!/^\d{3}$/.test(ped))return{estado:'error',campo:'pedido'};
   const prev=db.jugadores[tel];
-  const usada=db.jugadas.find(x=>x.pedido===ped);
+  const usada=db.jugadas.find(x=>x.pedido===ped&&x.creado.slice(0,10)===hoy);
   if(usada){
     const suya=usada.telefono===tel&&prev&&prev.nombre.toLowerCase()===j.nombre.toLowerCase()&&usada.codigo&&!usada.canjeado&&usada.vence>=hoy;
     return{estado:'pedido_usado',pendiente:suya?{codigo:usada.codigo,premio:usada.premio,simbolo:usada.simbolo,vence:usada.vence}:null};

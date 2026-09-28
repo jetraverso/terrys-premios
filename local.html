@@ -231,7 +231,7 @@ async function verCodigo(raw,msg){
     <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
     <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
     <dt>Móvil</dt><dd>··· ${esc(String(j.telefono).slice(-3))} <span style="color:var(--muted);font-weight:400">(pedile que te diga los últimos 3)</span></dd>
-    <dt>Pedido Glovo</dt><dd class="code">${esc(j.pedido||'—')}</dd>
+    <dt>Pedido Glovo</dt><dd>${j.pedido?`<span class="code" style="font-size:16px">#${esc(j.pedido)}</span> · del ${esc(fFecha(j.dia||j.creado))}`:'—'}</dd>
     <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
     <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
     ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
@@ -307,7 +307,7 @@ function tabJugadas(){
     $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th></tr></thead><tbody>${
       L.slice(0,500).map(x=>{
         const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
-        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${esc(x.pedido||'')}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
+        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${x.pedido?'#'+esc(x.pedido):''}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
           <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td></tr>`}).join('')
     }</tbody></table>`:'<div class="empty">No hay jugadas con ese filtro.</div>';
     document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
