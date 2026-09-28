@@ -155,6 +155,11 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .ticket .code{font-family:var(--display);font-size:56px;letter-spacing:.12em;line-height:1.05;user-select:all;-webkit-user-select:all}
 .ticket .who{color:var(--ink-2);font-size:14px}
 .ticket .vto{margin-top:8px;font-weight:700}
+.ticket{position:relative;overflow:hidden}
+.ticket.usado{border-style:solid;border-color:#9a9a9a}
+.ticket.usado .code{text-decoration:line-through;text-decoration-thickness:4px;color:#9a9a9a}
+.sello{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-14deg);border:4px solid var(--ink);border-radius:10px;
+  padding:4px 14px 0;font-family:var(--display);font-size:40px;letter-spacing:.1em;line-height:1.05;background:rgba(255,255,255,.85);pointer-events:none}
 .steps{text-align:left;margin-top:14px;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
 .steps div{display:flex;gap:10px}
 .steps b{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:12px}
@@ -162,6 +167,8 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .pend img{width:48px;height:48px;background:var(--paper);border-radius:10px;padding:3px;flex:none;object-fit:contain}
 .pend b{display:block}
 .pend span{font-size:13px;color:#d6d6d6}
+.pend.hecho{background:var(--paper);color:var(--ink);border:2px solid var(--ink)}
+.pend.hecho span{color:var(--muted)}
 .who-line{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
 .who-line b{color:var(--ink)}
 .who-line button{background:none;border:0;color:var(--ink);text-decoration:underline;cursor:pointer;font-size:13px}
@@ -390,11 +397,43 @@ function pintarQuien(){
 function pintarPendiente(){
   const p=store.get('premio'), box=$('#pendBox');
   const hoy=new Date().toISOString().slice(0,10);
-  if(!p||p.vence<hoy){box.innerHTML='';return}
-  box.innerHTML=`<button class="pend" type="button">${ico(p.simbolo)}<div><b>Tienes un premio: ${esc(p.premio)}</b><span>Código ${esc(p.codigo)} · válido hasta el ${esc(fmtFecha(p.vence))}. Toca para verlo.</span></div></button>`;
-  box.firstChild.onclick=()=>mostrarPremio(p,false);
+  if(!p){box.innerHTML='';return}
+  if(p.estado==='canjeado'){
+    // Se muestra una semana después del canje y después se olvida
+    if(Date.now()-new Date(p.canjeado)>7*864e5){store.del('premio');box.innerHTML='';return}
+    box.innerHTML=`<button class="pend hecho" type="button">${ico(p.simbolo)}<div><b>✓ Premio canjeado</b><span>${esc(p.premio)} · el ${esc(fmtFecha(p.canjeado))}. ¡Que lo disfrutes!</span></div></button>`;
+  }else if(p.estado==='vencido'||p.vence<hoy){
+    box.innerHTML='';return;
+  }else{
+    box.innerHTML=`<button class="pend" type="button">${ico(p.simbolo)}<div><b>Tienes un premio: ${esc(p.premio)}</b><span>Código ${esc(p.codigo)} · válido hasta el ${esc(fmtFecha(p.vence))}. Toca para verlo.</span></div></button>`;
+  }
+  box.firstChild.onclick=async()=>{await comprobarPremio();const q=store.get('premio');if(q)mostrarPremio(q,false)};
 }
-pintarQuien();pintarPendiente();
+function guardarPremio(p,j){store.set('premio',{...p,nombre:j.nombre,telefono:j.telefono});pintarPendiente()}
+// Pregunta a la base si el premio guardado ya se canjeó (o venció)
+let comprobando=null;
+function comprobarPremio(){
+  const p=store.get('premio'), tel=(p&&p.telefono)||(jugador&&jugador.telefono);
+  if(!p||!p.codigo||!tel||p.estado==='canjeado')return Promise.resolve();
+  if(comprobando)return comprobando;
+  comprobando=(async()=>{
+    try{
+      let r;
+      if(SB){const {data,error}=await sbc.rpc('premios_estado',{p_codigo:p.codigo,p_telefono:tel});if(error)throw error;r=data}
+      else r=demoEstado(p.codigo,tel);
+      if(!r||r.estado==='no_existe')return;
+      const q={...p,estado:r.estado,canjeado:r.canjeado||null,vence:r.vence||p.vence};
+      store.set('premio',q);pintarPendiente();
+      // Si justo tiene el premio abierto en pantalla, se actualiza ahí también
+      if($('#resSheet').classList.contains('on')&&$('#resCard').dataset.codigo===q.codigo&&q.estado==='canjeado')mostrarPremio(q,false);
+    }catch(e){}
+  })().finally(()=>{comprobando=null});   // se libera cuando terminó, aunque la respuesta sea instantánea
+  return comprobando;
+}
+pintarQuien();pintarPendiente();comprobarPremio();
+// Al volver a la página (desbloquear el móvil, cambiar de app) se vuelve a mirar
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')comprobarPremio()});
+setInterval(()=>{if(document.visibilityState==='visible'&&$('#resSheet').classList.contains('on'))comprobarPremio()},15000);
 
 // ---------- Paneles ----------
 function abrir(id){const s=$(id);s.classList.add('on');const f=s.querySelector('input,button');if(f&&id!=='#resSheet')setTimeout(()=>f.focus(),60)}
@@ -488,8 +527,8 @@ async function jugar(j){
     m.classList.remove('spinning');
     if(r.codigo){
       m.classList.add('win');reels.forEach(x=>x.classList.add('hit'));setTimeout(()=>reels.forEach(x=>x.classList.remove('hit')),1300);
-      const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:j.nombre};
-      store.set('premio',p);pintarPendiente();
+      const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:j.nombre,telefono:j.telefono};
+      guardarPremio(p,j);
       confeti();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
       setTimeout(()=>mostrarPremio(p,true),1100);
     }else{
@@ -500,13 +539,13 @@ async function jugar(j){
     m.classList.remove('spinning');
     if(r.estado==='pedido_usado'){
       recordar(j);
-      if(r.pendiente){const p={...r.pendiente,nombre:j.nombre};store.set('premio',p);pintarPendiente();mostrarPremio(p,false,'Ese pedido ya jugó')}
+      if(r.pendiente){const p={...r.pendiente,nombre:j.nombre,telefono:j.telefono};guardarPremio(p,j);mostrarPremio(p,false,'Ese pedido ya jugó')}
       else mostrarMensaje('Ese pedido ya jugó','Hoy ya se jugó con ese número de pedido. Revisa que sea el tuyo, o prueba con tu próximo pedido.');
     }else if(r.estado==='tope_dia'){
       mostrarMensaje('Por hoy ya está','Llegaste al máximo de tiradas de hoy con este móvil. ¡Vuelve con tu próximo pedido!');
     }else if(r.estado==='espera'){
       recordar(j);
-      if(r.pendiente){store.set('premio',{...r.pendiente,nombre:j.nombre});pintarPendiente()}
+      if(r.pendiente)guardarPremio(r.pendiente,j);
       mostrarEspera(r);
     }else if(r.estado==='error'){
       // Vuelve al formulario tal como estaba, marcando el dato que falló
@@ -524,6 +563,24 @@ async function jugar(j){
 }
 
 function mostrarPremio(p,recien,titulo){
+  $('#resCard').dataset.codigo=p.codigo;
+  if(p.estado==='canjeado'){
+    $('#resCard').innerHTML=`
+    <div class="ico">${ico(p.simbolo)}</div>
+    <div class="big">Premio canjeado</div>
+    <p class="sub" style="font-size:21px;color:var(--ink);font-weight:700;margin-top:12px">${esc(p.premio)}</p>
+    <div class="ticket usado">
+      <div class="lbl">Código</div>
+      <div class="code">${esc(p.codigo)}</div>
+      <div class="who">A nombre de ${esc(p.nombre||'')}</div>
+      <div class="vto">✓ Canjeado el ${esc(fmtFecha(p.canjeado))}</div>
+      <span class="sello" aria-hidden="true">Canjeado</span>
+    </div>
+    <p class="sub" style="margin-top:14px">¡Que lo disfrutes! Con tu próximo pedido tienes otra tirada.</p>
+    <button class="btn" type="button" data-close>Listo</button>`;
+    $('#live').textContent=`Tu premio ${p.premio} ya está canjeado.`;
+    abrir('#resSheet');return;
+  }
   $('#resCard').innerHTML=`
     <div class="ico">${ico(p.simbolo)}</div>
     ${titulo?`<p class="sub" style="margin-bottom:8px">${esc(titulo)}. Este es tu premio:</p>`:''}
@@ -586,6 +643,11 @@ function confeti(){
 }
 
 // ---------- Modo demo (sin Supabase) ----------
+function demoEstado(codigo,tel){
+  const db=store.get('demo_db')||{jugadas:[]}, j=db.jugadas.find(x=>x.codigo===codigo&&x.telefono===normTel(tel));
+  if(!j)return{estado:'no_existe'};
+  return{estado:j.canjeado?'canjeado':j.vence<new Date().toISOString().slice(0,10)?'vencido':'pendiente',canjeado:j.canjeado,vence:j.vence,premio:j.premio,simbolo:j.simbolo};
+}
 // Misma lógica que premios_jugar() en schema.sql, guardando en este navegador.
 function demoJugar(j){
   const db=store.get('demo_db')||{jugadores:{},jugadas:[]};

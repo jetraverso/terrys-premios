@@ -36,6 +36,7 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 
   O sea: de cada 100 jugadas salen más o menos 12 cañas, 8 burgers y medio menú. Las que no ganan muchas veces quedan "casi" (dos iguales), que es lo que hace que quieran volver a jugar.
 - **El premio dura 30 días** y se canjea una sola vez.
+- **El cliente se entera del canje:** el premio queda guardado en su móvil, y cada vez que abre la página (o vuelve a ella) le pregunta a la base cómo está. Si ya se canjeó, el aviso pasa a "✓ Premio canjeado" y la tarjeta muestra el código tachado con un sello de CANJEADO; si venció, desaparece. Con la tarjeta abierta se vuelve a mirar cada 15 segundos, así que si la está mostrando en caja cambia sola al rato. La base solo responde si coinciden el código y el móvil del ganador (`premios_estado`).
 - **Base de datos:** número de pedido de cada jugada, nombre, móvil, email (opcional), si acepta promociones, cuántas veces jugó y ganó, de qué QR vino (`?o=flyer`), primera y última jugada.
 - **Privacidad (RGPD):** para jugar hay que aceptar la política de privacidad (tiene 14 años o más). Recibir promociones es una casilla aparte, que viene sin tildar: **solo a los que la tildan se les puede mandar publicidad**. En la página del local hay un filtro "Solo aceptan promos" para exportar esa lista.
 

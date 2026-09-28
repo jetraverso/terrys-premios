@@ -324,6 +324,28 @@ begin
   return jsonb_build_object('estado', case when found then 'ok' else 'no' end);
 end $$;
 
+-- ---------------------------------------------------------------
+-- 8. Estado de un premio, para el móvil del cliente: así se entera
+--    de que ya lo canjeó (o de que venció). Solo responde si coinciden
+--    el código y el móvil del ganador.
+-- ---------------------------------------------------------------
+create or replace function public.premios_estado(p_codigo text, p_telefono text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  j   public.premios_jugadas;
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  select * into j from premios_jugadas
+   where codigo = public.premios_codigo(p_codigo) and telefono = public.premios_tel(p_telefono);
+  if j.id is null then return jsonb_build_object('estado', 'no_existe'); end if;
+  return jsonb_build_object(
+    'estado', case when j.canjeado is not null then 'canjeado' when j.vence < hoy then 'vencido' else 'pendiente' end,
+    'canjeado', j.canjeado, 'vence', j.vence, 'premio', j.premio, 'simbolo', j.simbolo);
+end $$;
+
+revoke execute on function public.premios_estado(text, text) from public;
+grant  execute on function public.premios_estado(text, text) to anon, authenticated;
+
 revoke execute on function public.premios_jugar(text, text, text, text, boolean, text) from public;
 revoke execute on function public.premios_canjear(text)        from public;
 revoke execute on function public.premios_deshacer_canje(text) from public;
