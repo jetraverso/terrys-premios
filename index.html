@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Terry's · Gira y gana</title>
+<meta name="description" content="Gira la ruleta de Terry's Burgers y gana premios para canjear en el local.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23000'/%3E%3Ctext x='50' y='76' font-family='Impact,sans-serif' font-size='72' text-anchor='middle' fill='%23fff'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#fff; --ink:#000; --ink-2:#1f1f1f; --muted:#5c5c5c; --soft:#f2f2f2;
+  --dots:radial-gradient(#000 1.1px,transparent 1.4px) 0 0/7px 7px;   /* el punteado de los stickers */
+  --display:"Bebas Neue","Impact","Arial Narrow",sans-serif; --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --cell:96px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;min-height:100svh;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+a{color:var(--ink)}
+.wrap{max-width:440px;margin:0 auto;padding:24px 16px calc(40px + env(safe-area-inset-bottom))}
+
+/* Cabecera */
+.top{text-align:center}
+.logo{display:block;width:min(78%,300px);height:auto;margin:0 auto}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(48px,15vw,64px);line-height:1;letter-spacing:.03em;margin-top:14px}
+h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em;border-radius:6px}
+.lead{color:var(--ink-2);margin:10px auto 0;max-width:30ch;font-weight:500}
+
+/* Máquina: recuadro negro, rodillos blancos */
+.machine{margin:22px auto 0;padding:12px 12px 14px;border-radius:24px;background:var(--ink);position:relative;box-shadow:6px 6px 0 #d9d9d9}
+.lights{display:flex;justify-content:space-between;padding:2px 6px 10px}
+.lights i{width:9px;height:9px;border-radius:50%;border:2px solid var(--paper);background:var(--ink)}
+.machine.spinning .lights i,.machine.win .lights i{animation:blink .4s steps(1) infinite}
+.machine .lights i:nth-child(even){animation-delay:.2s}
+@keyframes blink{50%{background:var(--paper)}}
+.reels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;position:relative}
+.reel{height:calc(var(--cell)*2.2);overflow:hidden;border-radius:10px;background:var(--paper);position:relative}
+.reel::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,0) 74%,rgba(0,0,0,.55) 100%)}
+.strip{position:absolute;left:0;right:0;top:calc(var(--cell)*-.4);will-change:transform}
+.cell{height:var(--cell);display:grid;place-items:center}
+.cell img{width:92%;height:92%;object-fit:contain;user-select:none;-webkit-user-select:none}
+.strip.loop{animation:loop calc(8 * 35ms) linear infinite}
+.strip.loop .cell img{filter:blur(1.5px)}
+@keyframes loop{from{transform:translateY(0)}to{transform:translateY(calc(var(--cell)*-8))}}
+.payline{position:absolute;left:-4px;right:-4px;top:50%;height:calc(var(--cell) + 6px);transform:translateY(-50%);
+  border:3px solid var(--ink);border-radius:12px;pointer-events:none;box-shadow:0 0 0 2px var(--paper)}
+.machine.win .payline{border-width:5px;animation:flash .3s steps(1) 6}
+@keyframes flash{50%{box-shadow:0 0 0 5px var(--paper)}}
+.reel.hit{animation:hit .6s ease 2}
+@keyframes hit{50%{transform:scale(1.04)}}
+
+.spin{display:block;width:100%;margin-top:14px;padding:15px 10px 11px;border:3px solid var(--paper);border-radius:16px;cursor:pointer;
+  background:var(--paper);color:var(--ink);font-family:var(--display);font-size:36px;letter-spacing:.08em;line-height:1;
+  box-shadow:0 6px 0 #8c8c8c;transition:transform .08s,box-shadow .08s;-webkit-tap-highlight-color:transparent}
+.spin:active{transform:translateY(4px);box-shadow:0 2px 0 #8c8c8c}
+.spin:disabled{background:#cfcfcf;border-color:#cfcfcf;color:#555;cursor:default;transform:translateY(4px);box-shadow:0 2px 0 #8c8c8c}
+.spin:focus-visible{outline:3px dashed var(--paper);outline-offset:4px}
+.hint{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
+
+/* Tabla de premios */
+.prizes{margin-top:26px;display:grid;gap:8px}
+.prizes h2{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.06em;text-align:center;margin-bottom:2px}
+.prow{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:12px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.prow .ic{flex:none}
+.prow .ic img{display:block;width:48px;height:48px;object-fit:contain}
+.prow .x3{font-family:var(--display);font-size:22px;letter-spacing:.04em}
+.prow b{font-weight:700}
+.as{margin-top:8px;color:var(--muted);font-size:13px;text-align:center}
+
+/* Paneles (formulario / resultado) */
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6);
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.sheet.on{opacity:1;pointer-events:auto}
+.card{width:100%;max-width:460px;max-height:94svh;overflow:auto;background:var(--paper);border:3px solid var(--ink);border-bottom:0;
+  border-radius:22px 22px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));transform:translateY(24px);transition:transform .22s}
+.sheet.on .card{transform:none}
+@media (min-width:560px){.sheet{align-items:center}.card{border-radius:22px;border-bottom:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}}
+.card h3{font-family:var(--display);font-weight:400;font-size:38px;letter-spacing:.03em;line-height:1}
+.card p.sub{color:var(--ink-2);margin-top:6px}
+.f{margin-top:14px}
+.f label{display:block;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.f label small{text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)}
+.f input[type=text],.f input[type=tel],.f input[type=email]{width:100%;padding:13px 14px;border-radius:12px;border:2px solid var(--ink);background:var(--paper);font-size:17px}
+.f input::placeholder{color:#9a9a9a}
+.f input:focus{outline:3px solid var(--ink);outline-offset:2px}
+.f .err{display:none;font-size:13px;font-weight:700;margin-top:6px}
+.f .err::before{content:"✕ "}
+.f.bad .err{display:block}
+.f.bad input{border-width:3px;border-style:dashed}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--ink-2);cursor:pointer}
+.chk input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--ink)}
+.chk.bad{font-weight:700;color:var(--ink)}
+.chk.bad span::after{content:" ← obligatorio"}
+.btn{display:block;width:100%;margin-top:18px;padding:14px;border:2px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);font-weight:700;font-size:17px;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.btn.ghost{background:var(--paper);color:var(--ink);margin-top:10px;font-weight:600}
+.formerr{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;border:2px solid var(--ink);font-weight:600;font-size:14px}
+.formerr.on{display:block}
+
+/* Resultado */
+.res{text-align:center}
+.res .big{font-family:var(--display);font-size:60px;line-height:.95;letter-spacing:.02em;margin-top:4px}
+.res .big.win{display:inline-block;background:var(--ink);color:var(--paper);padding:4px 16px 0;border-radius:10px}
+.res .ico{width:110px;height:110px;margin:0 auto 10px;display:grid;place-items:center}
+.res .ico img{width:100%;height:100%;object-fit:contain}
+.ticket{margin:16px 0 0;padding:16px;border-radius:16px;background:var(--paper);border:3px dashed var(--ink)}
+.ticket .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ticket .code{font-family:var(--display);font-size:56px;letter-spacing:.12em;line-height:1.05;user-select:all;-webkit-user-select:all}
+.ticket .who{color:var(--ink-2);font-size:14px}
+.ticket .vto{margin-top:8px;font-weight:700}
+.steps{text-align:left;margin-top:14px;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
+.steps div{display:flex;gap:10px}
+.steps b{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:12px}
+.pend{margin-top:18px;padding:10px 14px 10px 10px;border-radius:14px;background:var(--ink);color:var(--paper);border:0;display:flex;gap:12px;align-items:center;cursor:pointer;text-align:left;width:100%}
+.pend img{width:48px;height:48px;background:var(--paper);border-radius:10px;padding:3px;flex:none;object-fit:contain}
+.pend b{display:block}
+.pend span{font-size:13px;color:#d6d6d6}
+.who-line{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
+.who-line b{color:var(--ink)}
+.who-line button{background:none;border:0;color:var(--ink);text-decoration:underline;cursor:pointer;font-size:13px}
+.legal{font-size:13px;color:var(--ink-2);display:grid;gap:8px;margin-top:10px}
+.legal b{color:var(--ink)}
+.demo{position:fixed;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;background:var(--ink);color:var(--paper);font-size:12px;padding:3px 10px;border-radius:8px 8px 0 0;z-index:30}
+canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){.reel.hit,.machine.win .payline{animation:none}}
+@media (max-width:360px){:root{--cell:80px}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <img class="logo" src="img/logo-ancho.webp" alt="Terry's Burgers" width="720" height="167">
+    <h1>Gira y <em>gana</em></h1>
+    <p class="lead">Saca tres iguales y llévate un premio para canjear en el local.</p>
+  </header>
+
+  <section class="machine" id="machine" aria-label="Tragaperras">
+    <div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="reels">
+      <div class="reel"><div class="strip"></div></div>
+      <div class="reel"><div class="strip"></div></div>
+      <div class="reel"><div class="strip"></div></div>
+      <div class="payline" aria-hidden="true"></div>
+    </div>
+    <button class="spin" id="spin" type="button">¡Girar!</button>
+  </section>
+  <p class="hint" id="hint">Una tirada gratis con cada pedido.</p>
+  <div class="who-line" id="whoLine" hidden></div>
+  <div id="pendBox"></div>
+  <p class="sr" aria-live="polite" id="live"></p>
+
+  <section class="prizes" aria-label="Premios">
+    <h2>Premios</h2>
+    <div id="prizeList"></div>
+    <p class="as" id="asText">Canjeables en el local.</p>
+  </section>
+</div>
+
+<!-- Formulario -->
+<div class="sheet" id="formSheet" role="dialog" aria-modal="true" aria-labelledby="fTitle">
+  <form class="card" id="form" novalidate>
+    <h3 id="fTitle">¡Ya casi!</h3>
+    <p class="sub">Déjanos tus datos para guardarte el premio si ganas.</p>
+    <div class="f" id="fNombre">
+      <label for="nombre">Nombre</label>
+      <input type="text" id="nombre" autocomplete="given-name" maxlength="60" required>
+      <div class="err">Escribe tu nombre.</div>
+    </div>
+    <div class="f" id="fTel">
+      <label for="tel">Móvil <small>(para identificar tu premio)</small></label>
+      <input type="tel" id="tel" autocomplete="tel" inputmode="tel" placeholder="600 123 456" maxlength="20" required>
+      <div class="err">Revisa el número: 9 cifras, o con prefijo si no es de España.</div>
+    </div>
+    <div class="f" id="fMail">
+      <label for="email">Email <small>(opcional)</small></label>
+      <input type="email" id="email" autocomplete="email" inputmode="email" maxlength="120">
+      <div class="err">Ese email no parece válido.</div>
+    </div>
+    <label class="chk" id="cPriv"><input type="checkbox" id="priv"> <span>Tengo 14 años o más y acepto la <a href="#" id="verPriv">política de privacidad</a>.</span></label>
+    <label class="chk"><input type="checkbox" id="promos"> <span>Quiero recibir promociones de Terry's por WhatsApp o email (opcional).</span></label>
+    <div class="formerr" id="formErr"></div>
+    <button class="btn" id="go" type="submit">Girar la ruleta</button>
+    <button class="btn ghost" type="button" data-close>Ahora no</button>
+  </form>
+</div>
+
+<!-- Resultado -->
+<div class="sheet" id="resSheet" role="dialog" aria-modal="true">
+  <div class="card res" id="resCard"></div>
+</div>
+
+<!-- Privacidad -->
+<div class="sheet" id="privSheet" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="card">
+    <h3 id="pTitle">Privacidad</h3>
+    <div class="legal" id="legal"></div>
+    <button class="btn ghost" type="button" data-close>Cerrar</button>
+  </div>
+</div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ------------------------------------------------------------------
+// Configuración
+// ------------------------------------------------------------------
+// Los mismos dos valores que en Terry's Administración (Supabase → Project Settings → API).
+// Vacíos = modo demo: juega de mentira y guarda solo en este navegador.
+const SUPABASE_URL='https://cgkpklimplpedgxbgzvu.supabase.co';
+const SUPABASE_KEY='sb_publishable_yG1hrdoynoxBBYh9LX7QpA_we_bb_qC';
+
+const NEGOCIO={
+  nombre:"Terrys Burgers S.L.",
+  cif:"",                        // completar
+  email:"",                      // email para temas de privacidad (completar)
+  local:"",                      // dirección del local, ej. "C/ Ejemplo 12, Barcelona"
+};
+
+// Solo para mostrar la tabla de premios en la página (y para el modo demo).
+// Lo que vale de verdad está en Supabase → premios_catalogo.
+const PREMIOS=[
+  {simbolo:'logo',    personaje:"Terry's", premio:"Menú Terry's gratis",     prob:0.5},
+  {simbolo:'burgers', personaje:"Terry's", premio:"Burger Terry's gratis",    prob:1},
+  {simbolo:'perro',   personaje:'Rumpi',   premio:'Burger Rumpi gratis',      prob:1.5},
+  {simbolo:'botella', personaje:'Buba',    premio:'Burger Buba gratis',       prob:1.5},
+  {simbolo:'lata',    personaje:'Russel',  premio:'Burger Russel gratis',     prob:1.5},
+  {simbolo:'bacon',   personaje:'Torch',   premio:'Burger Torch gratis',      prob:1.5},
+  {simbolo:'patatas', personaje:'Zulma',   premio:'Burger Zulma gratis',      prob:1.5},
+  {simbolo:'cerveza', personaje:'Cerveza', premio:'Copa de cerveza gratis',   prob:12},
+];
+const DEMO_DIAS_ENTRE=7, DEMO_VALIDEZ=30;
+// ------------------------------------------------------------------
+
+const SB=!!(SUPABASE_URL&&SUPABASE_KEY);
+const sbc=SB?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}}):null;
+const SYMS=PREMIOS.map(p=>p.simbolo);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ico=s=>`<img src="img/${s}.webp" alt="" draggable="false">`;
+PREMIOS.forEach(p=>{const i=new Image();i.src=`img/${p.simbolo}.webp`});   // precarga
+const origen=(new URLSearchParams(location.search).get('o')||'').replace(/[^\w-]/g,'').slice(0,40);
+const store={
+  get(k){try{return JSON.parse(localStorage.getItem('tp_'+k))}catch{return null}},
+  set(k,v){try{localStorage.setItem('tp_'+k,JSON.stringify(v))}catch{}},
+  del(k){try{localStorage.removeItem('tp_'+k)}catch{}},
+};
+const fmtFecha=d=>{const x=new Date(typeof d==='string'&&d.length===10?d+'T12:00:00':d);return x.toLocaleDateString('es-ES',{day:'numeric',month:'long'})};
+const nombreDe=s=>(PREMIOS.find(p=>p.simbolo===s)||{}).premio||'';
+if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · no guarda en la base</div>');
+
+// ---------- Tabla de premios ----------
+$('#prizeList').innerHTML=PREMIOS.map(p=>`<div class="prow"><span class="ic">${ico(p.simbolo)}</span><span class="x3">×3</span><b>${esc(p.premio)}</b></div>`).join('');
+$('#asText').textContent=NEGOCIO.local?`Canjeables en el local: ${NEGOCIO.local}.`:'Canjeables en el local.';
+
+// ---------- Rodillos ----------
+const reels=[...document.querySelectorAll('.reel')];
+const strips=reels.map(r=>r.querySelector('.strip'));
+const rnd=()=>SYMS[Math.floor(Math.random()*SYMS.length)];
+const cellH=()=>parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'))||84;
+function paint(strip,list){strip.innerHTML=list.map(s=>`<div class="cell">${ico(s)}</div>`).join('')}
+// Lo que se ve en cada rodillo (3 celdas: arriba, línea, abajo), para empalmar
+// cada movimiento con el anterior sin que las imágenes cambien de golpe.
+const visible=new Map();
+const PASO_MS=35;                                  // ms por celda al girar a tope
+function rest(strip,center){
+  const trio=[rnd(),center,rnd()];
+  paint(strip,trio);visible.set(strip,trio);
+  strip.style.transition='none';strip.style.transform='translateY(0)';
+}
+function startLoop(strip){
+  // Arranca desde lo que se está viendo, y da vueltas cada 8 celdas
+  const base=[...visible.get(strip)];
+  while(base.length<8)base.push(rnd());
+  const list=[...base,...base.slice(0,4)];
+  paint(strip,list);strip._list=list;
+  strip.style.transition='none';strip.style.transform='';
+  strip.classList.add('loop');
+}
+function stopAt(strip,target,dur){
+  return new Promise(res=>{
+    const H=cellH(), list=strip._list||visible.get(strip);
+    // Dónde está parado el giro en este instante
+    const y=-new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42||0;
+    const k=Math.floor(y/H+1e-6), frac=y-k*H;
+    // Las celdas que se están viendo siguen, y detrás vienen las que faltan hasta el resultado.
+    // La cantidad hace que el frenado empiece a la misma velocidad que el giro.
+    const n=Math.max(4,Math.round(dur/(PASO_MS*2.4)));
+    const L=[list[k%list.length],list[(k+1)%list.length],list[(k+2)%list.length]];
+    for(let i=0;i<n;i++)L.push(rnd());
+    L.push(target,rnd());
+    const t=L.length-2;                             // índice del resultado
+    strip.classList.remove('loop');
+    paint(strip,L);
+    strip.style.transition='none';strip.style.transform=`translateY(${-frac}px)`;
+    strip.offsetHeight;
+    strip.style.transition=`transform ${dur}ms cubic-bezier(.25,.6,.3,1)`;
+    strip.style.transform=`translateY(${-(t-1)*H}px)`;
+    let listo=false;
+    const fin=()=>{if(listo)return;listo=true;strip.removeEventListener('transitionend',fin);
+      visible.set(strip,[L[t-1],L[t],L[t+1]]);strip._list=null;res()};
+    strip.addEventListener('transitionend',fin);
+    setTimeout(fin,dur+80);
+  });
+}
+const inicial=[rnd(),rnd(),rnd()];if(inicial[0]===inicial[1]&&inicial[1]===inicial[2])inicial[2]=SYMS[(SYMS.indexOf(inicial[2])+1)%SYMS.length];
+strips.forEach((s,i)=>rest(s,inicial[i]));
+
+// ---------- Jugador guardado en este móvil ----------
+let jugador=store.get('jugador');
+function pintarQuien(){
+  const w=$('#whoLine');
+  if(!jugador){w.hidden=true;return}
+  w.hidden=false;
+  w.innerHTML=`Jugando como <b>${esc(jugador.nombre)}</b> · <button type="button" id="cambiar">No soy yo</button>`;
+  $('#cambiar').onclick=()=>{jugador=null;store.del('jugador');store.del('premio');pintarQuien();pintarPendiente()};
+}
+function pintarPendiente(){
+  const p=store.get('premio'), box=$('#pendBox');
+  const hoy=new Date().toISOString().slice(0,10);
+  if(!p||p.vence<hoy){box.innerHTML='';return}
+  box.innerHTML=`<button class="pend" type="button">${ico(p.simbolo)}<div><b>Tienes un premio: ${esc(p.premio)}</b><span>Código ${esc(p.codigo)} · válido hasta el ${esc(fmtFecha(p.vence))}. Toca para verlo.</span></div></button>`;
+  box.firstChild.onclick=()=>mostrarPremio(p,false);
+}
+pintarQuien();pintarPendiente();
+
+// ---------- Paneles ----------
+function abrir(id){const s=$(id);s.classList.add('on');const f=s.querySelector('input,button');if(f&&id!=='#resSheet')setTimeout(()=>f.focus(),60)}
+function cerrar(id){$(id).classList.remove('on')}
+document.querySelectorAll('.sheet').forEach(s=>{
+  s.addEventListener('click',e=>{if(e.target===s||e.target.closest('[data-close]'))s.classList.remove('on')});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.sheet.on').forEach(s=>s.classList.remove('on'))});
+
+$('#legal').innerHTML=`
+  <p><b>Responsable:</b> ${esc(NEGOCIO.nombre)}${NEGOCIO.cif?` (CIF ${esc(NEGOCIO.cif)})`:''}${NEGOCIO.local?`, ${esc(NEGOCIO.local)}`:''}.</p>
+  <p><b>Para qué:</b> gestionar el juego y tus premios (identificarte al canjearlos). Si marcas la casilla de promociones, también para enviarte ofertas de Terry's por WhatsApp o email.</p>
+  <p><b>Base legal:</b> tu consentimiento. Puedes retirarlo cuando quieras.</p>
+  <p><b>Datos:</b> nombre, móvil, email si lo das, y tus jugadas. No se ceden a terceros; se guardan en servidores de Supabase en la UE.</p>
+  <p><b>Cuánto tiempo:</b> mientras participes, y hasta que pidas que se borren.</p>
+  <p><b>Tus derechos:</b> acceder, corregir o borrar tus datos, o dejar de recibir promociones${NEGOCIO.email?`, escribiendo a <a href="mailto:${esc(NEGOCIO.email)}">${esc(NEGOCIO.email)}</a>`:', pidiéndolo en el local'}. También puedes reclamar ante la AEPD (aepd.es).</p>`;
+$('#verPriv').onclick=e=>{e.preventDefault();abrir('#privSheet')};
+
+// ---------- Formulario ----------
+function normTel(t){
+  let d=String(t||'').replace(/[^\d+]/g,'');
+  if(d.startsWith('00'))d='+'+d.slice(2);
+  if(/^\+34\d{9}$/.test(d))return d;
+  if(/^\+[1-9]\d{7,14}$/.test(d)&&!d.startsWith('+34'))return d;
+  d=d.replace(/\+/g,'');
+  if(/^[6789]\d{8}$/.test(d))return '+34'+d;
+  if(/^34[6789]\d{8}$/.test(d))return '+'+d;
+  return null;
+}
+function marcar(id,mal){$(id).classList.toggle('bad',!!mal)}
+$('#spin').onclick=()=>{
+  if(jugador)return jugar(jugador);
+  $('#formErr').classList.remove('on');
+  abrir('#formSheet');
+};
+['#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
+$('#priv').addEventListener('change',()=>$('#cPriv').classList.remove('bad'));
+$('#form').onsubmit=e=>{
+  e.preventDefault();
+  const nombre=$('#nombre').value.trim().replace(/\s+/g,' ');
+  const tel=normTel($('#tel').value);
+  const email=$('#email').value.trim().toLowerCase();
+  const okMail=!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  marcar('#fNombre',nombre.length<2);marcar('#fTel',!tel);marcar('#fMail',!okMail);
+  $('#cPriv').classList.toggle('bad',!$('#priv').checked);
+  if(nombre.length<2||!tel||!okMail||!$('#priv').checked){
+    const b=document.querySelector('#form .bad');if(b){const i=b.querySelector('input');i&&i.focus()}
+    return;
+  }
+  const j={nombre,telefono:tel,email,promos:$('#promos').checked};
+  cerrar('#formSheet');
+  jugar(j,true);
+};
+
+// ---------- Jugar ----------
+let girando=false;
+async function llamar(j){
+  if(!SB)return demoJugar(j);
+  const {data,error}=await sbc.rpc('premios_jugar',{p_nombre:j.nombre,p_telefono:j.telefono,p_email:j.email||null,p_promos:!!j.promos,p_origen:origen||null});
+  if(error)throw error;
+  return data;
+}
+async function jugar(j,nuevo){
+  if(girando)return;
+  girando=true;
+  const m=$('#machine');m.classList.remove('win');m.classList.add('spinning');
+  $('#spin').disabled=true;$('#spin').textContent='Girando…';
+  strips.forEach(startLoop);
+  const t0=Date.now();
+  let r;
+  try{r=await llamar(j)}catch(err){r={estado:'falla'}}
+  await new Promise(ok=>setTimeout(ok,Math.max(0,900-(Date.now()-t0))));
+
+  if(r.estado==='ok'){
+    if(nuevo){jugador=j;store.set('jugador',{nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos});pintarQuien()}
+    const rod=r.rodillos;
+    await Promise.all(strips.map((s,i)=>stopAt(s,rod[i],1100+i*650)));
+    m.classList.remove('spinning');
+    if(r.codigo){
+      m.classList.add('win');reels.forEach(x=>x.classList.add('hit'));setTimeout(()=>reels.forEach(x=>x.classList.remove('hit')),1300);
+      const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:j.nombre};
+      store.set('premio',p);pintarPendiente();
+      confeti();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
+      setTimeout(()=>mostrarPremio(p,true),1100);
+    }else{
+      setTimeout(()=>mostrarNada(r,rod),900);
+    }
+  }else{
+    await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250)));
+    m.classList.remove('spinning');
+    if(r.estado==='espera'){
+      if(nuevo){jugador=j;store.set('jugador',{nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos});pintarQuien()}
+      if(r.pendiente){store.set('premio',{...r.pendiente,nombre:j.nombre});pintarPendiente()}
+      mostrarEspera(r);
+    }else if(r.estado==='error'){
+      jugador=null;store.del('jugador');pintarQuien();
+      const campo={nombre:'#fNombre',telefono:'#fTel',email:'#fMail'}[r.campo];
+      if(campo)marcar(campo,true);
+      abrir('#formSheet');
+    }else if(r.estado==='cerrado'){
+      mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
+    }else{
+      mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez.');
+    }
+  }
+  $('#spin').disabled=false;$('#spin').textContent='¡Girar!';
+  girando=false;
+}
+
+function mostrarPremio(p,recien){
+  $('#resCard').innerHTML=`
+    <div class="ico">${ico(p.simbolo)}</div>
+    <div class="big win">${recien?'¡Ganaste!':'Tu premio'}</div>
+    <p class="sub" style="font-size:21px;color:var(--ink);font-weight:700;margin-top:12px">${esc(p.premio)}</p>
+    <div class="ticket">
+      <div class="lbl">Código</div>
+      <div class="code">${esc(p.codigo)}</div>
+      <div class="who">A nombre de ${esc(p.nombre||'')}</div>
+      <div class="vto">Válido hasta el ${esc(fmtFecha(p.vence))}</div>
+    </div>
+    <div class="steps">
+      <div><b>1</b><span>Haz una captura de pantalla (el código también queda guardado aquí).</span></div>
+      <div><b>2</b><span>Ven a Terry's${NEGOCIO.local?` (${esc(NEGOCIO.local)})`:''} y enséñalo en caja.</span></div>
+      <div><b>3</b><span>Un premio por código, solo en el local. No se cambia por dinero.</span></div>
+    </div>
+    <button class="btn" type="button" data-close>Listo</button>`;
+  $('#live').textContent=`Ganaste: ${p.premio}. Código ${p.codigo}.`;
+  abrir('#resSheet');
+}
+function mostrarNada(r,rod){
+  const casi=rod[0]===rod[1]||rod[1]===rod[2]||rod[0]===rod[2];
+  $('#resCard').innerHTML=`
+    <div class="big">${casi?'¡Casi!':'Esta vez no'}</div>
+    <p class="sub">${casi?'Te faltó uno. ':''}Vuelve a probar con tu próximo pedido${r.proxima?` (desde el ${esc(fmtFecha(r.proxima))})`:''}.</p>
+    <button class="btn" type="button" data-close>Vale</button>`;
+  $('#live').textContent='Sin premio esta vez.';
+  abrir('#resSheet');
+}
+function mostrarEspera(r){
+  const p=r.pendiente;
+  $('#resCard').innerHTML=`
+    <div class="big">Ya jugaste</div>
+    <p class="sub">Puedes volver a girar desde el <b>${esc(fmtFecha(r.proxima))}</b>.</p>
+    ${p?`<button class="pend" type="button" id="verPend">${ico(p.simbolo)}<div><b>Tienes un premio sin canjear</b><span>${esc(p.premio)} · código ${esc(p.codigo)}. Toca para verlo.</span></div></button>`:''}
+    <button class="btn" type="button" data-close>Vale</button>`;
+  if(p)$('#verPend').onclick=()=>mostrarPremio({...p,nombre:jugador&&jugador.nombre},false);
+  abrir('#resSheet');
+}
+function mostrarMensaje(t,s){
+  $('#resCard').innerHTML=`<div class="big">${esc(t)}</div><p class="sub">${esc(s)}</p><button class="btn" type="button" data-close>Vale</button>`;
+  abrir('#resSheet');
+}
+
+// ---------- Confeti ----------
+function confeti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const c=$('#fx'),x=c.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1);
+  c.width=innerWidth*dpr;c.height=innerHeight*dpr;x.scale(dpr,dpr);
+  const cols=['#000','#000','#3a3a3a','#7a7a7a','#b5b5b5'];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2,y:innerHeight*.42,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,
+    r:Math.random()*6+4,c:cols[Math.floor(Math.random()*cols.length)],a:Math.random()*6,va:(Math.random()-.5)*.4}));
+  const t0=performance.now();
+  (function f(t){
+    x.clearRect(0,0,innerWidth,innerHeight);
+    ps.forEach(p=>{p.vy+=.35;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;
+      x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore()});
+    if(t-t0<3200)requestAnimationFrame(f);else x.clearRect(0,0,innerWidth,innerHeight);
+  })(t0);
+}
+
+// ---------- Modo demo (sin Supabase) ----------
+// Misma lógica que premios_jugar() en schema.sql, guardando en este navegador.
+function demoJugar(j){
+  const db=store.get('demo_db')||{jugadores:{},jugadas:[]};
+  const ahora=new Date(), hoy=ahora.toISOString().slice(0,10);
+  const tel=normTel(j.telefono);
+  if(!tel)return{estado:'error',campo:'telefono'};
+  const prev=db.jugadores[tel];
+  const ult=db.jugadas.filter(x=>x.telefono===tel).sort((a,b)=>b.creado.localeCompare(a.creado))[0];
+  const sinLimite=new URLSearchParams(location.search).has('demo_sin_limite');
+  if(ult&&!sinLimite&&new Date(ult.creado)>new Date(ahora-DEMO_DIAS_ENTRE*864e5)){
+    const pend=prev&&prev.nombre.toLowerCase()===j.nombre.toLowerCase()&&db.jugadas.find(x=>x.telefono===tel&&x.codigo&&!x.canjeado&&x.vence>=hoy);
+    return{estado:'espera',proxima:new Date(+new Date(ult.creado)+DEMO_DIAS_ENTRE*864e5).toISOString(),
+      pendiente:pend?{codigo:pend.codigo,premio:pend.premio,simbolo:pend.simbolo,vence:pend.vence}:null};
+  }
+  db.jugadores[tel]={telefono:tel,nombre:j.nombre,email:j.email||(prev&&prev.email)||'',acepta_promos:!!j.promos,origen:(prev&&prev.origen)||origen||'',
+    jugadas:prev?prev.jugadas:0,premios:prev?prev.premios:0,primera_jugada:prev?prev.primera_jugada:ahora.toISOString(),ultima_jugada:prev&&prev.ultima_jugada};
+  const r=Math.random()*100;let acc=0,g=null;
+  for(const p of PREMIOS){acc+=p.prob;if(r<acc){g=p;break}}
+  let rod,cod=null,vto=null;
+  if(g){
+    rod=[g.simbolo,g.simbolo,g.simbolo];
+    const alf='ACDEFGHJKLMNPQRTUVWXY34679';
+    do{cod='T-'+Array.from({length:5},()=>alf[Math.floor(Math.random()*alf.length)]).join('')}while(db.jugadas.some(x=>x.codigo===cod));
+    vto=new Date(+ahora+DEMO_VALIDEZ*864e5).toISOString().slice(0,10);
+  }else{
+    rod=[rnd(),rnd(),rnd()];if(rod[0]===rod[1]&&rod[1]===rod[2])rod[2]=SYMS[(SYMS.indexOf(rod[2])+1)%SYMS.length];
+  }
+  db.jugadas.push({id:db.jugadas.length+1,telefono:tel,creado:ahora.toISOString(),rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,canjeado:null,canjeado_por:null,origen:origen||''});
+  db.jugadores[tel].jugadas++;if(g)db.jugadores[tel].premios++;db.jugadores[tel].ultima_jugada=ahora.toISOString();
+  store.set('demo_db',db);
+  return{estado:'ok',rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,
+    proxima:sinLimite?null:new Date(+ahora+DEMO_DIAS_ENTRE*864e5).toISOString()};
+}
+</script>
+</body>
+</html>

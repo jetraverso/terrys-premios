@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terry's · Premios (local)</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#141311">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23f1ede5'/%3E%3Ctext x='50' y='76' font-family='Impact,sans-serif' font-size='72' text-anchor='middle' fill='%23141311'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --paper:#141311; --surface:#1d1b18; --surface-2:#26231f; --ink:#f1ede5; --ink-2:#c9c3b7; --muted:#8f887b; --line:#332f29; --line-2:#453f37;
+  --out:#e0693f; --out-soft:#40221a; --out-ink:#f4b9a1;
+  --accent:#5c9fc4; --accent-soft:#1b2f3b;
+  --ok:#5cb47f; --ok-soft:#1c3326; --warn:#e29a4a; --warn-soft:#3a3010; --danger:#e5665e; --gold:#f2c14e;
+  --display:"Bebas Neue","Impact","Arial Narrow",sans-serif; --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--out-ink)}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wordmark{font-family:var(--display);font-size:30px;letter-spacing:.04em;line-height:1;display:flex;align-items:baseline;gap:10px}
+.wordmark small{font-family:var(--body);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+.me{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.lnk{background:none;border:0;color:var(--out-ink);text-decoration:underline;cursor:pointer;font-size:13px}
+.btn{padding:11px 16px;border-radius:10px;border:0;background:var(--out);color:#1a0f09;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2);font-weight:600}
+.btn.ok{background:var(--ok);color:#0d1a12}
+.btn:disabled{opacity:.55;cursor:default}
+input[type=text],input[type=email],input[type=password],input[type=search],input[type=url]{padding:11px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--paper);width:100%}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--out);outline-offset:1px}
+
+/* Login */
+.login{max-width:360px;margin:12vh auto 0;padding:26px 22px;background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.login h1{font-family:var(--display);font-weight:400;font-size:40px;line-height:1}
+.login p{color:var(--ink-2);margin:6px 0 16px}
+.login label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.login .btn{width:100%;margin-top:18px}
+.msg{margin-top:12px;font-size:14px;color:var(--danger);min-height:1em}
+
+/* Canje */
+.canje{margin-top:18px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.canje h2,.panel h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03em;line-height:1.1}
+.canje form{display:flex;gap:8px;margin-top:10px}
+.canje input{font-family:var(--display);font-size:30px;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
+.canje input::placeholder{letter-spacing:.08em;opacity:.35}
+.res{margin-top:14px}
+.tk{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:14px 16px;border-radius:12px;border:2px solid var(--line-2);background:var(--paper)}
+.tk.valido{border-color:var(--ok)}
+.tk.usado{border-color:var(--line-2);opacity:.9}
+.tk.vencido{border-color:var(--warn)}
+.tk .st{grid-column:1/-1;font-family:var(--display);font-size:28px;letter-spacing:.04em;line-height:1}
+.tk.valido .st{color:var(--ok)} .tk.vencido .st{color:var(--warn)} .tk.usado .st{color:var(--muted)}
+.tk .prem{grid-column:1/-1;font-size:20px;font-weight:700;margin-bottom:6px}
+.tk dt{color:var(--muted)} .tk dd{font-weight:600}
+.tk .acts{grid-column:1/-1;display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.nf{padding:12px 14px;border-radius:12px;background:var(--out-soft);color:var(--out-ink)}
+
+/* Tarjetas */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px}
+.card{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.card .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.card .v{font-family:var(--display);font-size:34px;line-height:1;margin-top:4px}
+.card .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+
+/* Solapas */
+.tabs{display:flex;gap:4px;margin-top:22px;border-bottom:1px solid var(--line)}
+.tabs button{padding:10px 14px;border:0;background:none;color:var(--muted);font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--out)}
+.panel{padding-top:14px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.bar input[type=search]{max-width:280px}
+.bar .n{color:var(--muted);font-size:13px;margin-left:auto}
+.bar label{font-size:13px;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.pill.si{background:var(--ok-soft);color:var(--ok)} .pill.no{background:var(--surface-2);color:var(--muted)}
+.pill.gan{background:var(--warn-soft);color:var(--gold)} .pill.can{background:var(--accent-soft);color:var(--accent)} .pill.ven{background:var(--out-soft);color:var(--out-ink)}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+
+/* QR */
+.qr{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start}
+@media (max-width:700px){.qr{grid-template-columns:1fr}}
+.qr label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.qr p{color:var(--ink-2);font-size:14px}
+.qrbox{background:#fff;border-radius:14px;padding:14px;display:grid;place-items:center}
+.qrbox svg{width:100%;height:auto;display:block}
+.qrurl{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
+.demo{position:fixed;left:50%;bottom:0;transform:translateX(-50%);background:var(--out-soft);color:var(--out-ink);font-size:12px;padding:3px 10px;border-radius:8px 8px 0 0;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+// Los mismos dos valores que en index.html. Vacíos = modo demo (lee lo que se jugó en este navegador).
+const SUPABASE_URL='https://cgkpklimplpedgxbgzvu.supabase.co';
+const SUPABASE_KEY='sb_publishable_yG1hrdoynoxBBYh9LX7QpA_we_bb_qC';
+
+const SB=!!(SUPABASE_URL&&SUPABASE_KEY);
+const sbc=SB?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'terrys-premios-local'}}):null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoyISO=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const fFecha=d=>d?new Date(d.length===10?d+'T12:00:00':d).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Madrid'}):'';
+const fHora=d=>d?new Date(d).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):'';
+const telBonito=t=>{const m=String(t||'').match(/^\+34(\d{3})(\d{3})(\d{3})$/);return m?`${m[1]} ${m[2]} ${m[3]}`:t};
+const normCodigo=c=>{const x=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(/^[A-Z0-9]{5}$/.test(x))return'T-'+x;if(/^T[A-Z0-9]{5}$/.test(x))return'T-'+x.slice(1);return null};
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · datos de este navegador</div>');
+
+// ---------- Datos ----------
+const demoDb=()=>{try{return JSON.parse(localStorage.getItem('tp_demo_db'))||{jugadores:{},jugadas:[]}}catch{return{jugadores:{},jugadas:[]}}};
+const demoSave=db=>{try{localStorage.setItem('tp_demo_db',JSON.stringify(db))}catch{}};
+let email='', J=[], P=[], tab='jugadores';
+
+async function cargar(){
+  if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));}
+  else{
+    const [a,b]=await Promise.all([
+      sbc.from('premios_jugadores').select('*').order('ultima_jugada',{ascending:false,nullsFirst:false}).limit(10000),
+      sbc.from('premios_jugadas').select('*,premios_jugadores(nombre)').order('creado',{ascending:false}).limit(3000),
+    ]);
+    if(a.error||b.error){toast('No se pudo cargar: '+(a.error||b.error).message);return}
+    J=a.data;P=b.data.map(x=>({...x,nombre:x.premios_jugadores&&x.premios_jugadores.nombre}));
+  }
+  P.sort((a,b)=>b.creado.localeCompare(a.creado));
+  J.sort((a,b)=>String(b.ultima_jugada||'').localeCompare(String(a.ultima_jugada||'')));
+  pintarResumen();pintarTab();
+}
+async function buscarCodigo(cod){
+  if(!SB)return P.find(x=>x.codigo===cod)||null;
+  const {data,error}=await sbc.from('premios_jugadas').select('*,premios_jugadores(nombre,telefono)').eq('codigo',cod).maybeSingle();
+  if(error)throw error;
+  return data&&{...data,nombre:data.premios_jugadores&&data.premios_jugadores.nombre};
+}
+async function canjear(cod){
+  if(!SB){
+    const db=demoDb(),j=db.jugadas.find(x=>x.codigo===cod);
+    if(!j)return{estado:'no_existe'};
+    if(j.canjeado)return{estado:'ya_canjeado',canjeado:j.canjeado};
+    if(j.vence<hoyISO())return{estado:'vencido'};
+    j.canjeado=new Date().toISOString();j.canjeado_por='demo';demoSave(db);return{estado:'ok'};
+  }
+  const {data,error}=await sbc.rpc('premios_canjear',{p_codigo:cod});
+  if(error)throw error;return data;
+}
+async function deshacer(cod){
+  if(!SB){const db=demoDb(),j=db.jugadas.find(x=>x.codigo===cod);if(j){j.canjeado=null;j.canjeado_por=null;demoSave(db)}return{estado:'ok'}}
+  const {data,error}=await sbc.rpc('premios_deshacer_canje',{p_codigo:cod});
+  if(error)throw error;return data;
+}
+
+// ---------- Pantallas ----------
+function pintarLogin(msg=''){
+  $('#app').innerHTML=`<form class="login" id="lf">
+    <h1>Terry's · Premios</h1><p>Entrada del local para canjear premios y ver la base.</p>
+    <label for="le">Email</label><input type="email" id="le" autocomplete="username" required>
+    <label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password" required>
+    <button class="btn" id="lb">Entrar</button><div class="msg" id="lm">${esc(msg)}</div></form>`;
+  $('#lf').onsubmit=async e=>{
+    e.preventDefault();$('#lb').disabled=true;$('#lm').textContent='';
+    const {error}=await sbc.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});
+    if(error){$('#lb').disabled=false;$('#lm').textContent='Email o contraseña incorrectos.';return}
+    entrar();
+  };
+}
+async function entrar(){
+  if(SB){
+    const {data:{session}}=await sbc.auth.getSession();
+    if(!session)return pintarLogin();
+    const {data:ok}=await sbc.rpc('premios_es_staff');
+    if(!ok){await sbc.auth.signOut();return pintarLogin('Ese usuario no está en la lista del local (premios_staff).')}
+    email=session.user.email;
+  }else email='demo';
+  pintarApp();cargar();
+}
+
+function pintarApp(){
+  $('#app').innerHTML=`<div class="wrap">
+    <header><div class="wordmark">TERRY'S <small>Premios · local</small></div>
+      <div class="me">${esc(email)} ${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
+    <section class="canje">
+      <h2>Canjear un premio</h2>
+      <form id="cf"><input type="text" id="ci" placeholder="T-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10" aria-label="Código del premio"><button class="btn">Buscar</button></form>
+      <div class="res" id="cr"></div>
+    </section>
+    <div class="cards" id="cards"></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-t="jugadores">Jugadores</button>
+      <button role="tab" data-t="jugadas">Jugadas y premios</button>
+      <button role="tab" data-t="qr">QR del flyer</button>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>`;
+  if(SB)$('#salir').onclick=async()=>{await sbc.auth.signOut();pintarLogin()};
+  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;pintarTab()});
+  $('#cf').onsubmit=async e=>{e.preventDefault();verCodigo($('#ci').value)};
+  $('#ci').focus();
+}
+
+async function verCodigo(raw,msg){
+  const cod=normCodigo(raw), box=$('#cr');
+  if(!cod){box.innerHTML='<div class="nf">El código tiene 5 letras o números, por ejemplo T-K7P3Q.</div>';return}
+  $('#ci').value=cod;
+  let j;try{j=await buscarCodigo(cod)}catch(err){box.innerHTML=`<div class="nf">No se pudo buscar: ${esc(err.message)}</div>`;return}
+  if(!j){box.innerHTML=`<div class="nf">No existe ningún premio con el código <b>${esc(cod)}</b>. Revisá que esté bien escrito.</div>`;return}
+  const vencido=!j.canjeado&&j.vence<hoyISO();
+  const cls=j.canjeado?'usado':vencido?'vencido':'valido';
+  const st=j.canjeado?`Ya canjeado el ${fHora(j.canjeado)}`:vencido?`Vencido el ${fFecha(j.vence)}`:'Válido ✓';
+  const recien=j.canjeado&&(Date.now()-new Date(j.canjeado))<12*3600e3;
+  box.innerHTML=`<div class="tk ${cls}">
+    <div class="st">${esc(msg||st)}</div>
+    <div class="prem">${esc(j.premio)}</div>
+    <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
+    <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
+    <dt>Móvil</dt><dd>··· ${esc(String(j.telefono).slice(-3))} <span style="color:var(--muted);font-weight:400">(pedile que te diga los últimos 3)</span></dd>
+    <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
+    <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
+    ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
+    <div class="acts">
+      ${cls==='valido'?`<button class="btn ok" id="entregar">Entregar y marcar canjeado</button>`:''}
+      ${recien?`<button class="btn sec" id="deshacer">Deshacer canje</button>`:''}
+      <button class="btn sec" id="limpiar">Otro código</button>
+    </div></div>`;
+  const limpiar=()=>{box.innerHTML='';$('#ci').value='';$('#ci').focus()};
+  $('#limpiar').onclick=limpiar;
+  if($('#entregar'))$('#entregar').onclick=async()=>{
+    if(!confirm(`¿Entregar "${j.premio}" a ${j.nombre}? Queda marcado como canjeado.`))return;
+    $('#entregar').disabled=true;
+    let r;try{r=await canjear(cod)}catch(err){toast('Error: '+err.message);$('#entregar').disabled=false;return}
+    const m={ok:'Canjeado ✓ — ya podés entregarlo',ya_canjeado:'Ojo: ya estaba canjeado',vencido:'Vencido: no se puede canjear',no_existe:'No existe'}[r.estado];
+    await cargar();verCodigo(cod,m);
+  };
+  if($('#deshacer'))$('#deshacer').onclick=async()=>{
+    if(!confirm('¿Deshacer el canje? El premio vuelve a quedar disponible.'))return;
+    try{await deshacer(cod)}catch(err){toast('Error: '+err.message);return}
+    await cargar();verCodigo(cod,'Canje deshecho: vuelve a estar disponible');
+  };
+}
+
+function pintarResumen(){
+  const hoy=hoyISO(), dia=x=>new Date(x).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+  const hace7=new Date(Date.now()-7*864e5).toISOString();
+  const gan=P.filter(x=>x.codigo), can=gan.filter(x=>x.canjeado), pend=gan.filter(x=>!x.canjeado&&x.vence>=hoy);
+  const promos=J.filter(x=>x.acepta_promos).length;
+  const c=(k,v,s)=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  $('#cards').innerHTML=
+    c('Jugadas hoy',P.filter(x=>dia(x.creado)===hoy).length)+
+    c('Últimos 7 días',P.filter(x=>x.creado>=hace7).length,`${new Set(P.filter(x=>x.creado>=hace7).map(x=>x.telefono)).size} personas`)+
+    c('Jugadores',J.length,`${promos} aceptan promos`)+
+    c('Premios dados',gan.length,`${P.length?Math.round(gan.length/P.length*100):0}% de las jugadas`)+
+    c('Canjeados',can.length,`${pend.length} pendientes`);
+}
+
+function pintarTab(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab));
+  ({jugadores:tabJugadores,jugadas:tabJugadas,qr:tabQr})[tab]();
+}
+function tabJugadores(){
+  $('#panel').innerHTML=`<div class="bar"><input type="search" id="q" placeholder="Buscar nombre, móvil o email"><label><input type="checkbox" id="sp"> Solo aceptan promos</label>
+    <button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  const draw=()=>{
+    const q=$('#q').value.trim().toLowerCase(), sp=$('#sp').checked;
+    const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)));
+    $('#n').textContent=`${L.length} de ${J.length}`;
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th></tr></thead><tbody>${
+      L.slice(0,500).map(x=>`<tr><td>${esc(x.nombre)}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
+        <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td></tr>`).join('')
+    }</tbody></table>`:'<div class="empty">Todavía no jugó nadie.</div>';
+    return L;
+  };
+  $('#q').oninput=draw;$('#sp').onchange=draw;
+  $('#csv').onclick=()=>{
+    const L=draw();
+    const rows=[['Nombre','Movil','Email','Acepta promos','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
+      ...L.map(x=>[x.nombre,x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
+    const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`terrys-jugadores-${hoyISO()}.csv`;a.click();
+  };
+  draw();
+}
+function tabJugadas(){
+  $('#panel').innerHTML=`<div class="bar"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
+    <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  const draw=()=>{
+    const f=$('#f').value, hoy=hoyISO();
+    const L=P.filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
+    $('#n').textContent=`${L.length} jugadas`;
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th></tr></thead><tbody>${
+      L.slice(0,500).map(x=>{
+        const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
+        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
+          <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td></tr>`}).join('')
+    }</tbody></table>`:'<div class="empty">No hay jugadas con ese filtro.</div>';
+    document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+  };
+  $('#f').onchange=draw;draw();
+}
+function tabQr(){
+  const base=new URL('./',location.href).href;
+  $('#panel').innerHTML=`<div class="qr"><div>
+      <p>Este es el QR que va en el flyer de los pedidos. Lleva a la ruleta. Con <b>origen</b> podés saber de dónde vino cada jugador (por ejemplo <i>flyer</i>, <i>glovo</i>, <i>mesa</i>): se guarda la primera vez que juega.</p>
+      <label for="qb">Dirección de la ruleta</label><input type="url" id="qb" value="${esc(base)}">
+      <label for="qo">Origen</label><input type="text" id="qo" value="flyer" maxlength="40">
+      <div class="bar" style="margin-top:14px"><button class="btn" id="png">Descargar PNG</button><button class="btn sec" id="svg">Descargar SVG (imprenta)</button></div>
+    </div><div><div class="qrbox" id="qrbox"></div><div class="qrurl" id="qrurl"></div></div></div>`;
+  let qr,url;
+  const draw=()=>{
+    const o=$('#qo').value.replace(/[^\w-]/g,'');
+    url=$('#qb').value.trim()+(o?(($('#qb').value.includes('?')?'&':'?')+'o='+o):'');
+    qr=qrcode(0,'M');qr.addData(url);qr.make();
+    const n=qr.getModuleCount(),m=4;let d='';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))d+=`M${c+m} ${r+m}h1v1h-1z`;
+    $('#qrbox').innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n+2*m} ${n+2*m}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#141311"/></svg>`;
+    $('#qrurl').textContent=url;
+  };
+  const bajar=(href,name)=>{const a=document.createElement('a');a.href=href;a.download=name;a.click()};
+  $('#qb').oninput=draw;$('#qo').oninput=draw;
+  $('#svg').onclick=()=>bajar(URL.createObjectURL(new Blob([$('#qrbox').innerHTML],{type:'image/svg+xml'})),'qr-terrys-premios.svg');
+  $('#png').onclick=()=>{
+    const n=qr.getModuleCount(),m=4,s=24,cv=document.createElement('canvas');cv.width=cv.height=(n+2*m)*s;
+    const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#141311';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))x.fillRect((c+m)*s,(r+m)*s,s,s);
+    bajar(cv.toDataURL('image/png'),'qr-terrys-premios.png');
+  };
+  draw();
+}
+
+entrar();
+</script>
+</body>
+</html>
