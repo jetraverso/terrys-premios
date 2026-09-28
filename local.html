@@ -231,6 +231,7 @@ async function verCodigo(raw,msg){
     <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
     <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
     <dt>Móvil</dt><dd>··· ${esc(String(j.telefono).slice(-3))} <span style="color:var(--muted);font-weight:400">(pedile que te diga los últimos 3)</span></dd>
+    <dt>Pedido Glovo</dt><dd class="code">${esc(j.pedido||'—')}</dd>
     <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
     <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
     ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
@@ -297,21 +298,21 @@ function tabJugadores(){
   draw();
 }
 function tabJugadas(){
-  $('#panel').innerHTML=`<div class="bar"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
+  $('#panel').innerHTML=`<div class="bar"><input type="search" id="qp" placeholder="Buscar pedido o nombre"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
     <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
   const draw=()=>{
-    const f=$('#f').value, hoy=hoyISO();
-    const L=P.filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
+    const f=$('#f').value, hoy=hoyISO(), q=$('#qp').value.trim().toUpperCase();
+    const L=P.filter(x=>(!q||String(x.pedido||'').includes(q.replace(/[^A-Z0-9]/g,''))||String(x.nombre||'').toUpperCase().includes(q))).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
     $('#n').textContent=`${L.length} jugadas`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th></tr></thead><tbody>${
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th></tr></thead><tbody>${
       L.slice(0,500).map(x=>{
         const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
-        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
+        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${esc(x.pedido||'')}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
           <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td></tr>`}).join('')
     }</tbody></table>`:'<div class="empty">No hay jugadas con ese filtro.</div>';
     document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
   };
-  $('#f').onchange=draw;draw();
+  $('#f').onchange=draw;$('#qp').oninput=draw;draw();
 }
 function tabQr(){
   const base=new URL('./',location.href).href;

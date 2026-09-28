@@ -1,6 +1,6 @@
 # Terry's Premios
 
-La ruleta del QR del flyer. El cliente escanea, deja nombre y móvil, gira una tragaperras de 3 rodillos con los personajes de Terry's y si salen **3 iguales** gana un premio con un código (`T-K7P3Q`) para canjear **en el local**. Cada jugada queda guardada en Supabase, así se va armando la base de clientes.
+La ruleta del QR del flyer. El cliente escanea, pone el **número de su pedido de Glovo**, nombre y móvil, gira una tragaperras de 3 rodillos con los personajes de Terry's y si salen **3 iguales** gana un premio con un código (`T-K7P3Q`) para canjear **en el local**. Cada jugada queda guardada en Supabase, así se va armando la base de clientes.
 
 Publicada en GitHub Pages:
 
@@ -17,13 +17,15 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 ## Cómo funciona
 
 - **El resultado lo decide Supabase, no el navegador.** La página solo anima los rodillos hasta donde le dice el servidor, así nadie puede hacer trampa tocando el código de la página.
-- **Una jugada por móvil cada 7 días.** El número se guarda siempre igual (`600 11 12 22`, `+34600111222` y `0034600111222` son la misma persona). Si vuelve antes, le dice desde cuándo puede jugar y, si tiene un premio sin canjear, se lo vuelve a mostrar (solo si pone el mismo nombre: con saber el móvil de otro no alcanza).
+- **Una tirada por cada pedido de Glovo.** Para jugar hay que poner el número de pedido, y cada número sirve una sola vez: si la misma persona vuelve a pedir, vuelve a jugar. Si alguien pone un pedido que ya jugó, le avisa (y si es el mismo cliente con un premio sin canjear, se lo vuelve a mostrar). El número se guarda sin espacios ni símbolos (`#123 456-789` y `123456789` son el mismo).
+- **Freno a pedidos inventados:** como el número no se puede comprobar contra Glovo, un mismo móvil puede jugar como mucho **3 veces por día** (se cambia en `premios_config`). En caja se ve el número de pedido de cada premio, así se puede comparar con los pedidos de Glovo antes de entregarlo.
+- **El móvil** se guarda siempre igual (`600 11 12 22`, `+34600111222` y `0034600111222` son la misma persona) y en ese móvil la página recuerda los datos: la próxima vez solo hay que poner el pedido nuevo.
 - **Premios y chances** (se cambian en Supabase, ver abajo):
 
   | 3 iguales | Imagen (`img/`) | Premio | Chance |
   |---|---|---|---|
   | Logo Terry's | `logo` | Menú Terry's gratis | 0,5 % |
-  | Las dos burgers | `burgers` | Burger Terry's gratis | 1 % |
+  | Los Terry's (las dos burgers) | `burgers` | Burger Terry's gratis | 1 % |
   | Rumpi (perro) | `perro` | Burger Rumpi gratis | 1,5 % |
   | Buba (botella) | `botella` | Burger Buba gratis | 1,5 % |
   | Russel | `lata` | Burger Russel gratis | 1,5 % |
@@ -34,13 +36,13 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 
   O sea: de cada 100 jugadas salen más o menos 12 cañas, 8 burgers y medio menú. Las que no ganan muchas veces quedan "casi" (dos iguales), que es lo que hace que quieran volver a jugar.
 - **El premio dura 30 días** y se canjea una sola vez.
-- **Base de datos:** nombre, móvil, email (opcional), si acepta promociones, cuántas veces jugó y ganó, de qué QR vino (`?o=flyer`), primera y última jugada.
+- **Base de datos:** número de pedido de cada jugada, nombre, móvil, email (opcional), si acepta promociones, cuántas veces jugó y ganó, de qué QR vino (`?o=flyer`), primera y última jugada.
 - **Privacidad (RGPD):** para jugar hay que aceptar la política de privacidad (tiene 14 años o más). Recibir promociones es una casilla aparte, que viene sin tildar: **solo a los que la tildan se les puede mandar publicidad**. En la página del local hay un filtro "Solo aceptan promos" para exportar esa lista.
 
 ### En caja (`local.html`)
 
 1. El cliente muestra el código en el móvil. Se escribe en el recuadro (alcanza con las 5 letras, sin `T-`, en minúscula también) → **Buscar**.
-2. Sale en verde **Válido ✓** con el premio y el nombre. Para confirmar que es él, pedile los últimos 3 números del móvil (la página los muestra).
+2. Sale en verde **Válido ✓** con el premio, el nombre y el número de pedido de Glovo. Para confirmar que es él, pedile los últimos 3 números del móvil (la página los muestra).
 3. **Entregar y marcar canjeado.** Si ya estaba canjeado o vencido, lo dice en gris o amarillo y no deja canjearlo.
 4. Si se tocó por error, **Deshacer canje** (hasta 12 horas después).
 
@@ -84,13 +86,14 @@ Todo en Supabase → **Table Editor**:
 - **`premios_catalogo`** — un renglón por personaje: `simbolo` (el nombre de su imagen en `img/`), `premio` y `probabilidad` (en %). Lo que falte para 100 es "sin premio". Con probabilidad 0 sigue saliendo en los rodillos pero nunca da premio. *Si cambiás un premio o agregás un personaje, cambialo también en la lista `PREMIOS` de `index.html` (es lo que muestra la página); un personaje nuevo necesita su imagen en `img/` (cuadrada, fondo transparente, `.webp`).*
 - **`premios_config`**:
   - `activo` — `false` apaga la ruleta ("La ruleta está en pausa").
-  - `dias_entre_jugadas` — cada cuántos días puede jugar un mismo móvil (7). `0` = sin límite.
+  - `max_jugadas_dia` — máximo de tiradas por móvil y por día (3). `0` = sin tope.
+  - `dias_entre_jugadas` — días de espera entre tiradas de un mismo móvil, además del pedido (0 = ninguna: cada pedido juega).
   - `dias_validez` — cuántos días dura un premio (30). Vale para los premios nuevos.
   - `max_premios_dia` — tope de premios por día (vacío = sin tope). Pasado el tope, todos pierden hasta el día siguiente.
 - **Borrar a alguien** (si lo pide, por RGPD): Table Editor → `premios_jugadores` → borrar su fila (se borran solas sus jugadas).
 
 ## Límites a tener en cuenta
 
-- El móvil **no se verifica** (no se manda SMS): alguien podría jugar con números inventados. Por eso en caja se piden los últimos 3 números, y existe el tope diario. Si se abusa, el paso siguiente sería imprimir un código único por flyer, para que cada pedido dé exactamente una jugada.
+- Ni el móvil ni el número de pedido **se verifican** (no hay SMS ni conexión con Glovo): alguien podría inventar números de pedido. Por eso el tope de tiradas por móvil y por día, y en caja se ve el pedido de cada premio para compararlo con Glovo y se piden los últimos 3 números del móvil.
 - La lista del local carga las últimas 3000 jugadas y hasta 10.000 jugadores; para más, exportar desde Supabase.
 - El texto de privacidad es una base razonable, pero conviene que lo mire quien les lleve la parte legal.

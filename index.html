@@ -22,17 +22,29 @@ html,body{background:var(--paper)}
 body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;min-height:100svh;overflow-x:hidden}
 button,input{font:inherit;color:inherit}
 a{color:var(--ink)}
-.wrap{max-width:440px;margin:0 auto;padding:24px 16px calc(40px + env(safe-area-inset-bottom))}
+.juego,.premios{max-width:440px;margin:0 auto;padding-left:16px;padding-right:16px}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.juego,.premios{scroll-snap-align:start}
+
+/* Primera pantalla: la máquina, y "Premios" asomando abajo */
+.juego{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;padding-top:20px}
+.ver-premios{margin:auto auto 0;padding:14px 24px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;
+  text-decoration:none;color:var(--ink);font-family:var(--display);font-size:26px;letter-spacing:.1em;line-height:1}
+.ver-premios svg{width:26px;height:26px;margin-top:2px;animation:bajar 1.6s ease-in-out infinite}
+@keyframes bajar{50%{transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.ver-premios svg{animation:none}}
 
 /* Cabecera */
 .top{text-align:center}
+.lead{font-size:15px}
 .logo{display:block;width:min(78%,300px);height:auto;margin:0 auto}
 h1{font-family:var(--display);font-weight:400;font-size:clamp(48px,15vw,64px);line-height:1;letter-spacing:.03em;margin-top:14px}
 h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em;border-radius:6px}
 .lead{color:var(--ink-2);margin:10px auto 0;max-width:30ch;font-weight:500}
 
 /* Máquina: recuadro negro, rodillos blancos */
-.machine{margin:22px auto 0;padding:12px 12px 14px;border-radius:24px;background:var(--ink);position:relative;box-shadow:6px 6px 0 #d9d9d9}
+.machine{margin:18px 0 0;padding:12px 12px 14px;border-radius:24px;background:var(--ink);position:relative;box-shadow:6px 6px 0 #d9d9d9}
 .lights{display:flex;justify-content:space-between;padding:2px 6px 10px}
 .lights i{width:9px;height:9px;border-radius:50%;border:2px solid var(--paper);background:var(--ink)}
 .machine.spinning .lights i,.machine.win .lights i{animation:blink .4s steps(1) infinite}
@@ -63,15 +75,31 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .spin:focus-visible{outline:3px dashed var(--paper);outline-offset:4px}
 .hint{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
 
-/* Tabla de premios */
-.prizes{margin-top:26px;display:grid;gap:8px}
-.prizes h2{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.06em;text-align:center;margin-bottom:2px}
-.prow{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:12px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
-.prow .ic{flex:none}
-.prow .ic img{display:block;width:48px;height:48px;object-fit:contain}
-.prow .x3{font-family:var(--display);font-size:22px;letter-spacing:.04em}
-.prow b{font-weight:700}
-.as{margin-top:8px;color:var(--muted);font-size:13px;text-align:center}
+/* Premios */
+.premios{padding-top:28px;padding-bottom:calc(36px + env(safe-area-inset-bottom))}
+.premios h2{font-family:var(--display);font-weight:400;font-size:44px;letter-spacing:.06em;line-height:1;text-align:center}
+.intro{text-align:center;color:var(--ink-2);margin-top:6px}
+.tabla{width:100%;margin-top:16px;border-collapse:separate;border-spacing:0;border:3px solid var(--ink);border-radius:16px;overflow:hidden}
+.tabla th{background:var(--ink);color:var(--paper);font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.08em;text-align:left;padding:9px 12px 7px}
+.tabla td{padding:10px 12px;border-top:2px solid var(--ink);vertical-align:middle}
+.tabla tbody tr:first-child td{border-top:0}
+.tabla td.im{width:76px;padding:6px 0 6px 8px}
+.tabla td.im img{display:block;width:64px;height:64px;object-fit:contain}
+.tabla td.nom{font-family:var(--display);font-size:24px;letter-spacing:.04em;line-height:1;width:32%}
+.tabla td.nom small{display:block;font-family:var(--body);font-size:12px;letter-spacing:0;color:var(--muted);margin-top:3px}
+.tabla td.pr{font-weight:700;font-size:16px;line-height:1.25;border-left:2px solid var(--ink)}
+.reglas{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
+.reglas li{padding-left:22px;position:relative}
+.reglas li::before{content:"";position:absolute;left:4px;top:.5em;width:8px;height:8px;background:var(--ink);border-radius:50%}
+.as{margin-top:10px;color:var(--muted);font-size:13px;text-align:center}
+.as:empty{display:none}
+.btn.volver{text-align:center;text-decoration:none;margin-top:22px}
+.f .help{font-size:12px;color:var(--muted);margin-top:5px}
+.f.bad .help{display:none}
+
+/* Pantallas bajas: todo un poco más chico para que "Premios" asome */
+@media (max-height:760px){:root{--cell:84px}.logo{width:min(64%,260px)}h1{font-size:46px;margin-top:8px}.lead{margin-top:6px}.hint{margin-top:10px}}
+@media (max-height:660px){:root{--cell:72px}.lead{display:none}}
 
 /* Paneles (formulario / resultado) */
 .sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6);
@@ -137,14 +165,15 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 <body>
 
 
-<div class="wrap">
+<main>
+<section class="juego" id="juego">
   <header class="top">
     <img class="logo" src="img/logo-ancho.webp" alt="Terry's Burgers" width="720" height="167">
     <h1>Gira y <em>gana</em></h1>
     <p class="lead">Saca tres iguales y llévate un premio para canjear en el local.</p>
   </header>
 
-  <section class="machine" id="machine" aria-label="Tragaperras">
+  <div class="machine" id="machine" aria-label="Tragaperras">
     <div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="reels">
       <div class="reel"><div class="strip"></div></div>
@@ -153,24 +182,44 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       <div class="payline" aria-hidden="true"></div>
     </div>
     <button class="spin" id="spin" type="button">¡Girar!</button>
-  </section>
-  <p class="hint" id="hint">Una tirada gratis con cada pedido.</p>
+  </div>
+  <p class="hint" id="hint">Una tirada gratis con cada pedido de Glovo.</p>
   <div class="who-line" id="whoLine" hidden></div>
   <div id="pendBox"></div>
   <p class="sr" aria-live="polite" id="live"></p>
 
-  <section class="prizes" aria-label="Premios">
-    <h2>Premios</h2>
-    <div id="prizeList"></div>
-    <p class="as" id="asText">Canjeables en el local.</p>
-  </section>
-</div>
+  <a class="ver-premios" href="#premios">Premios
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+</section>
+
+<section class="premios" id="premios" aria-labelledby="tPremios">
+  <h2 id="tPremios">Premios</h2>
+  <p class="intro">Si en la línea del medio salen <b>3 iguales</b>, ganas:</p>
+  <table class="tabla">
+    <thead><tr><th colspan="2">Si salen 3</th><th>Te llevas</th></tr></thead>
+    <tbody id="prizeList"></tbody>
+  </table>
+  <ul class="reglas">
+    <li>Una tirada por cada pedido de Glovo: el número de pedido sirve una sola vez.</li>
+    <li>El premio se canjea <b>solo en el local</b>, enseñando el código en caja.</li>
+    <li id="rValidez">Válido 30 días desde que lo ganas. No se cambia por dinero.</li>
+  </ul>
+  <p class="as" id="asText"></p>
+  <a class="btn volver" href="#juego">Volver a jugar</a>
+</section>
+</main>
 
 <!-- Formulario -->
 <div class="sheet" id="formSheet" role="dialog" aria-modal="true" aria-labelledby="fTitle">
   <form class="card" id="form" novalidate>
     <h3 id="fTitle">¡Ya casi!</h3>
-    <p class="sub">Déjanos tus datos para guardarte el premio si ganas.</p>
+    <p class="sub">Una tirada por cada pedido. Déjanos tus datos para guardarte el premio si ganas.</p>
+    <div class="f" id="fPedido">
+      <label for="pedido">Nº de pedido de Glovo</label>
+      <input type="text" id="pedido" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="Ej. 123456789" required>
+      <div class="help">Está en la app de Glovo, en el detalle de tu pedido.</div>
+      <div class="err">Escribe el número de pedido (al menos 4 letras o números).</div>
+    </div>
     <div class="f" id="fNombre">
       <label for="nombre">Nombre</label>
       <input type="text" id="nombre" autocomplete="given-name" maxlength="60" required>
@@ -230,8 +279,8 @@ const NEGOCIO={
 // Solo para mostrar la tabla de premios en la página (y para el modo demo).
 // Lo que vale de verdad está en Supabase → premios_catalogo.
 const PREMIOS=[
-  {simbolo:'logo',    personaje:"Terry's", premio:"Menú Terry's gratis",     prob:0.5},
-  {simbolo:'burgers', personaje:"Terry's", premio:"Burger Terry's gratis",    prob:1},
+  {simbolo:'logo',    personaje:"Logo Terry's", premio:"Menú Terry's gratis",     prob:0.5},
+  {simbolo:'burgers', personaje:"Los Terry's", premio:"Burger Terry's gratis",    prob:1},
   {simbolo:'perro',   personaje:'Rumpi',   premio:'Burger Rumpi gratis',      prob:1.5},
   {simbolo:'botella', personaje:'Buba',    premio:'Burger Buba gratis',       prob:1.5},
   {simbolo:'lata',    personaje:'Russel',  premio:'Burger Russel gratis',     prob:1.5},
@@ -239,7 +288,7 @@ const PREMIOS=[
   {simbolo:'patatas', personaje:'Zulma',   premio:'Burger Zulma gratis',      prob:1.5},
   {simbolo:'cerveza', personaje:'Cerveza', premio:'Copa de cerveza gratis',   prob:12},
 ];
-const DEMO_DIAS_ENTRE=7, DEMO_VALIDEZ=30;
+const DEMO_DIAS_ENTRE=0, DEMO_VALIDEZ=30, DEMO_MAX_DIA=3;
 // ------------------------------------------------------------------
 
 const SB=!!(SUPABASE_URL&&SUPABASE_KEY);
@@ -260,8 +309,8 @@ const nombreDe=s=>(PREMIOS.find(p=>p.simbolo===s)||{}).premio||'';
 if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · no guarda en la base</div>');
 
 // ---------- Tabla de premios ----------
-$('#prizeList').innerHTML=PREMIOS.map(p=>`<div class="prow"><span class="ic">${ico(p.simbolo)}</span><span class="x3">×3</span><b>${esc(p.premio)}</b></div>`).join('');
-$('#asText').textContent=NEGOCIO.local?`Canjeables en el local: ${NEGOCIO.local}.`:'Canjeables en el local.';
+$('#prizeList').innerHTML=PREMIOS.map(p=>`<tr><td class="im">${ico(p.simbolo)}</td><td class="nom">${esc(p.personaje)}<small>× 3</small></td><td class="pr">${esc(p.premio)}</td></tr>`).join('');
+$('#asText').textContent=NEGOCIO.local?`Terry's Burgers · ${NEGOCIO.local}`:'';
 
 // ---------- Rodillos ----------
 const reels=[...document.querySelectorAll('.reel')];
@@ -323,7 +372,8 @@ function pintarQuien(){
   if(!jugador){w.hidden=true;return}
   w.hidden=false;
   w.innerHTML=`Jugando como <b>${esc(jugador.nombre)}</b> · <button type="button" id="cambiar">No soy yo</button>`;
-  $('#cambiar').onclick=()=>{jugador=null;store.del('jugador');store.del('premio');pintarQuien();pintarPendiente()};
+  $('#cambiar').onclick=()=>{jugador=null;store.del('jugador');store.del('premio');pintarQuien();pintarPendiente();
+    ['#nombre','#tel','#email'].forEach(x=>$(x).value='');$('#promos').checked=false;$('#priv').checked=false};
 }
 function pintarPendiente(){
   const p=store.get('premio'), box=$('#pendBox');
@@ -364,38 +414,50 @@ function normTel(t){
 }
 function marcar(id,mal){$(id).classList.toggle('bad',!!mal)}
 $('#spin').onclick=()=>{
-  if(jugador)return jugar(jugador);
+  // Siempre pide el pedido; el resto se completa con lo de la vez anterior
   $('#formErr').classList.remove('on');
+  document.querySelectorAll('#form .bad').forEach(x=>x.classList.remove('bad'));
+  $('#pedido').value='';
+  if(jugador){
+    $('#nombre').value=jugador.nombre||'';$('#tel').value=jugador.telefono||'';$('#email').value=jugador.email||'';
+    $('#promos').checked=!!jugador.promos;$('#priv').checked=true;
+  }
   abrir('#formSheet');
 };
-['#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
+['#pedido','#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
 $('#priv').addEventListener('change',()=>$('#cPriv').classList.remove('bad'));
 $('#form').onsubmit=e=>{
   e.preventDefault();
+  const pedido=$('#pedido').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
   const nombre=$('#nombre').value.trim().replace(/\s+/g,' ');
   const tel=normTel($('#tel').value);
   const email=$('#email').value.trim().toLowerCase();
   const okMail=!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-  marcar('#fNombre',nombre.length<2);marcar('#fTel',!tel);marcar('#fMail',!okMail);
+  const okPed=pedido.length>=4&&pedido.length<=20;
+  marcar('#fPedido',!okPed);marcar('#fNombre',nombre.length<2);marcar('#fTel',!tel);marcar('#fMail',!okMail);
   $('#cPriv').classList.toggle('bad',!$('#priv').checked);
-  if(nombre.length<2||!tel||!okMail||!$('#priv').checked){
+  if(!okPed||nombre.length<2||!tel||!okMail||!$('#priv').checked){
     const b=document.querySelector('#form .bad');if(b){const i=b.querySelector('input');i&&i.focus()}
     return;
   }
-  const j={nombre,telefono:tel,email,promos:$('#promos').checked};
+  const j={pedido,nombre,telefono:tel,email,promos:$('#promos').checked};
   cerrar('#formSheet');
-  jugar(j,true);
+  jugar(j);
 };
 
 // ---------- Jugar ----------
 let girando=false;
 async function llamar(j){
   if(!SB)return demoJugar(j);
-  const {data,error}=await sbc.rpc('premios_jugar',{p_nombre:j.nombre,p_telefono:j.telefono,p_email:j.email||null,p_promos:!!j.promos,p_origen:origen||null});
+  const {data,error}=await sbc.rpc('premios_jugar',{p_nombre:j.nombre,p_telefono:j.telefono,p_pedido:j.pedido,p_email:j.email||null,p_promos:!!j.promos,p_origen:origen||null});
   if(error)throw error;
   return data;
 }
-async function jugar(j,nuevo){
+function recordar(j){
+  jugador={nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos};
+  store.set('jugador',jugador);pintarQuien();
+}
+async function jugar(j){
   if(girando)return;
   girando=true;
   const m=$('#machine');m.classList.remove('win');m.classList.add('spinning');
@@ -407,7 +469,7 @@ async function jugar(j,nuevo){
   await new Promise(ok=>setTimeout(ok,Math.max(0,900-(Date.now()-t0))));
 
   if(r.estado==='ok'){
-    if(nuevo){jugador=j;store.set('jugador',{nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos});pintarQuien()}
+    recordar(j);
     const rod=r.rodillos;
     await Promise.all(strips.map((s,i)=>stopAt(s,rod[i],1100+i*650)));
     m.classList.remove('spinning');
@@ -423,13 +485,19 @@ async function jugar(j,nuevo){
   }else{
     await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250)));
     m.classList.remove('spinning');
-    if(r.estado==='espera'){
-      if(nuevo){jugador=j;store.set('jugador',{nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos});pintarQuien()}
+    if(r.estado==='pedido_usado'){
+      recordar(j);
+      if(r.pendiente){const p={...r.pendiente,nombre:j.nombre};store.set('premio',p);pintarPendiente();mostrarPremio(p,false,'Ese pedido ya jugó')}
+      else mostrarMensaje('Ese pedido ya jugó','Cada número de pedido juega una sola vez. ¡Con tu próximo pedido tienes otra tirada!');
+    }else if(r.estado==='tope_dia'){
+      mostrarMensaje('Por hoy ya está','Llegaste al máximo de tiradas de hoy con este móvil. ¡Vuelve con tu próximo pedido!');
+    }else if(r.estado==='espera'){
+      recordar(j);
       if(r.pendiente){store.set('premio',{...r.pendiente,nombre:j.nombre});pintarPendiente()}
       mostrarEspera(r);
     }else if(r.estado==='error'){
-      jugador=null;store.del('jugador');pintarQuien();
-      const campo={nombre:'#fNombre',telefono:'#fTel',email:'#fMail'}[r.campo];
+      // Vuelve al formulario tal como estaba, marcando el dato que falló
+      const campo={pedido:'#fPedido',nombre:'#fNombre',telefono:'#fTel',email:'#fMail'}[r.campo];
       if(campo)marcar(campo,true);
       abrir('#formSheet');
     }else if(r.estado==='cerrado'){
@@ -442,9 +510,10 @@ async function jugar(j,nuevo){
   girando=false;
 }
 
-function mostrarPremio(p,recien){
+function mostrarPremio(p,recien,titulo){
   $('#resCard').innerHTML=`
     <div class="ico">${ico(p.simbolo)}</div>
+    ${titulo?`<p class="sub" style="margin-bottom:8px">${esc(titulo)}. Este es tu premio:</p>`:''}
     <div class="big win">${recien?'¡Ganaste!':'Tu premio'}</div>
     <p class="sub" style="font-size:21px;color:var(--ink);font-weight:700;margin-top:12px">${esc(p.premio)}</p>
     <div class="ticket">
@@ -466,7 +535,7 @@ function mostrarNada(r,rod){
   const casi=rod[0]===rod[1]||rod[1]===rod[2]||rod[0]===rod[2];
   $('#resCard').innerHTML=`
     <div class="big">${casi?'¡Casi!':'Esta vez no'}</div>
-    <p class="sub">${casi?'Te faltó uno. ':''}Vuelve a probar con tu próximo pedido${r.proxima?` (desde el ${esc(fmtFecha(r.proxima))})`:''}.</p>
+    <p class="sub">${casi?'Te faltó uno. ':''}Vuelve a probar con tu próximo pedido${r.proxima?` (desde el ${esc(fmtFecha(r.proxima))})`:''}: cada pedido es una tirada nueva.</p>
     <button class="btn" type="button" data-close>Vale</button>`;
   $('#live').textContent='Sin premio esta vez.';
   abrir('#resSheet');
@@ -510,10 +579,18 @@ function demoJugar(j){
   const ahora=new Date(), hoy=ahora.toISOString().slice(0,10);
   const tel=normTel(j.telefono);
   if(!tel)return{estado:'error',campo:'telefono'};
+  const ped=String(j.pedido||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(ped.length<4||ped.length>20)return{estado:'error',campo:'pedido'};
   const prev=db.jugadores[tel];
-  const ult=db.jugadas.filter(x=>x.telefono===tel).sort((a,b)=>b.creado.localeCompare(a.creado))[0];
+  const usada=db.jugadas.find(x=>x.pedido===ped);
+  if(usada){
+    const suya=usada.telefono===tel&&prev&&prev.nombre.toLowerCase()===j.nombre.toLowerCase()&&usada.codigo&&!usada.canjeado&&usada.vence>=hoy;
+    return{estado:'pedido_usado',pendiente:suya?{codigo:usada.codigo,premio:usada.premio,simbolo:usada.simbolo,vence:usada.vence}:null};
+  }
   const sinLimite=new URLSearchParams(location.search).has('demo_sin_limite');
-  if(ult&&!sinLimite&&new Date(ult.creado)>new Date(ahora-DEMO_DIAS_ENTRE*864e5)){
+  if(!sinLimite&&db.jugadas.filter(x=>x.telefono===tel&&x.creado.slice(0,10)===hoy).length>=DEMO_MAX_DIA)return{estado:'tope_dia'};
+  const ult=db.jugadas.filter(x=>x.telefono===tel).sort((a,b)=>b.creado.localeCompare(a.creado))[0];
+  if(ult&&DEMO_DIAS_ENTRE>0&&!sinLimite&&new Date(ult.creado)>new Date(ahora-DEMO_DIAS_ENTRE*864e5)){
     const pend=prev&&prev.nombre.toLowerCase()===j.nombre.toLowerCase()&&db.jugadas.find(x=>x.telefono===tel&&x.codigo&&!x.canjeado&&x.vence>=hoy);
     return{estado:'espera',proxima:new Date(+new Date(ult.creado)+DEMO_DIAS_ENTRE*864e5).toISOString(),
       pendiente:pend?{codigo:pend.codigo,premio:pend.premio,simbolo:pend.simbolo,vence:pend.vence}:null};
@@ -531,11 +608,11 @@ function demoJugar(j){
   }else{
     rod=[rnd(),rnd(),rnd()];if(rod[0]===rod[1]&&rod[1]===rod[2])rod[2]=SYMS[(SYMS.indexOf(rod[2])+1)%SYMS.length];
   }
-  db.jugadas.push({id:db.jugadas.length+1,telefono:tel,creado:ahora.toISOString(),rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,canjeado:null,canjeado_por:null,origen:origen||''});
+  db.jugadas.push({id:db.jugadas.length+1,telefono:tel,creado:ahora.toISOString(),rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,canjeado:null,canjeado_por:null,origen:origen||'',pedido:ped});
   db.jugadores[tel].jugadas++;if(g)db.jugadores[tel].premios++;db.jugadores[tel].ultima_jugada=ahora.toISOString();
   store.set('demo_db',db);
   return{estado:'ok',rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,
-    proxima:sinLimite?null:new Date(+ahora+DEMO_DIAS_ENTRE*864e5).toISOString()};
+    proxima:null};
 }
 </script>
 </body>
