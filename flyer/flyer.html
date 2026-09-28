@@ -23,17 +23,17 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .puntos.b{right:0;bottom:0;transform:rotate(180deg)}
 .hoja>*:not(.puntos){position:relative;z-index:1}
 
-.logo{display:block;width:36mm;margin:0 auto}
+.logo{display:block;width:64mm;margin:0 auto}
 
-/* Titular */
-.titular{position:relative;text-align:center;margin-top:1.6mm;font-family:var(--display);line-height:.84;letter-spacing:.01em}
-.titular .t1{font-size:17.5mm}
-.titular .t2{font-size:17.5mm;margin-top:.6mm}
-.titular .t2 span{background:var(--ink);color:var(--paper);padding:.6mm 2.4mm 0;border-radius:2.2mm;display:inline-block}
-.burst{position:absolute;right:-1.5mm;top:-4mm;width:22mm;height:22mm;transform:rotate(12deg)}
+/* Titular (un solo renglón) */
+.titular{position:relative;text-align:center;margin-top:3.4mm;font-family:var(--display);line-height:.84;letter-spacing:.01em}
+.titular .t{font-size:15.4mm;white-space:nowrap}
+.titular .t span{background:var(--ink);color:var(--paper);padding:.6mm 2.4mm 0;border-radius:2.2mm;display:inline-block}
+/* la estrella va pegada como un sticker en la esquina de la máquina */
+.burst{position:absolute;right:-4mm;bottom:-9mm;width:19mm;height:19mm;transform:rotate(12deg);z-index:3}
 .burst svg{position:absolute;inset:0;width:100%;height:100%}
 .burst b{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--display);font-weight:400;
-  font-size:4.2mm;line-height:.9;letter-spacing:.03em}
+  font-size:3.7mm;line-height:.9;letter-spacing:.03em}
 
 /* Máquina */
 .maquina{margin-top:2.6mm;background:var(--ink);border-radius:4mm;padding:2mm 2.2mm 2.4mm}
@@ -41,10 +41,10 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .luces i{width:2.2mm;height:2.2mm;border-radius:50%;background:var(--rojo);border:.35mm solid #ff8a80}
 .luces i:nth-child(even){background:var(--amarillo);border-color:#fff1a8}
 .rodillos{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4mm;position:relative}
-.rodillo{height:16mm;border-radius:1.8mm;background:var(--paper);display:grid;place-items:center;position:relative;overflow:hidden}
+.rodillo{height:21mm;border-radius:1.8mm;background:var(--paper);display:grid;place-items:center;position:relative;overflow:hidden}
 .rodillo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,0) 22%,rgba(0,0,0,0) 78%,rgba(0,0,0,.45))}
-.rodillo img{width:13.5mm;height:13.5mm;object-fit:contain}
-.linea{position:absolute;left:-.8mm;right:-.8mm;top:50%;height:14.8mm;transform:translateY(-50%);border:.7mm solid var(--ink);border-radius:2.2mm;
+.rodillo img{width:17.5mm;height:17.5mm;object-fit:contain}
+.linea{position:absolute;left:-.8mm;right:-.8mm;top:50%;height:19.4mm;transform:translateY(-50%);border:.7mm solid var(--ink);border-radius:2.2mm;
   box-shadow:0 0 0 .45mm var(--paper)}
 
 /* QR + pasos */
@@ -87,15 +87,14 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   <img class="logo" src="img/logo.png" alt="Terry's">
 
   <div class="titular">
-    <div class="t1">¡JUEGA</div>
-    <div class="t2">Y <span>GANA!</span></div>
+    <div class="t">¡JUEGA Y <span>GANA!</span></div>
+  </div>
+
+  <div class="maquina">
     <div class="burst" aria-hidden="true">
       <svg viewBox="-50 -50 100 100"><polygon fill="#ffc400" stroke="#000" stroke-width="2.4" stroke-linejoin="round" points="0.0,-48.0 6.6,-37.4 16.4,-45.1 19.0,-32.9 30.9,-36.8 29.1,-24.4 41.6,-24.0 35.7,-13.0 47.3,-8.3 38.0,0.0 47.3,8.3 35.7,13.0 41.6,24.0 29.1,24.4 30.9,36.8 19.0,32.9 16.4,45.1 6.6,37.4 0.0,48.0 -6.6,37.4 -16.4,45.1 -19.0,32.9 -30.9,36.8 -29.1,24.4 -41.6,24.0 -35.7,13.0 -47.3,8.3 -38.0,0.0 -47.3,-8.3 -35.7,-13.0 -41.6,-24.0 -29.1,-24.4 -30.9,-36.8 -19.0,-32.9 -16.4,-45.1 -6.6,-37.4"/></svg>
       <b>PREMIOS<br>GRATIS</b>
     </div>
-  </div>
-
-  <div class="maquina">
     <div class="luces"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="rodillos">
       <div class="rodillo"><img src="img/perro.png" alt=""></div>
