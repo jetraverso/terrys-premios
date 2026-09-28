@@ -107,6 +107,14 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .pedido-in:focus-within{outline:3px solid var(--ink);outline-offset:2px}
 .f .pedido-in input[type=text]:focus{outline:0}
 .f.bad .pedido-in{border-width:3px;border-style:dashed}
+.tel-in{display:flex;width:100%;border:2px solid var(--ink);border-radius:12px;background:var(--paper);overflow:hidden}
+.tel-in:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+.f .pais{margin:0;letter-spacing:0;text-transform:none;color:var(--ink);flex:none;position:relative;display:flex;align-items:center;gap:6px;padding:0 10px 0 12px;border-right:2px solid var(--ink);background:var(--soft);font-weight:700;font-size:17px;cursor:pointer;white-space:nowrap}
+.f .pais::after{content:"";width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);margin-top:5px}
+.f .pais select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.f .tel-in input[type=tel]{border:0;border-radius:0;min-width:0;flex:1}
+.f .tel-in input[type=tel]:focus{outline:0}
+.f.bad .tel-in{border-width:3px;border-style:dashed}
 .f.bad .help{display:none}
 
 /* Pantallas bajas: todo un poco más chico para que "Premios" asome */
@@ -246,8 +254,11 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     </div>
     <div class="f" id="fTel">
       <label for="tel">Móvil <small>(para identificar tu premio)</small></label>
-      <input type="tel" id="tel" autocomplete="tel" inputmode="tel" placeholder="600 123 456" maxlength="20" required>
-      <div class="err">Revisa el número: 9 cifras, o con prefijo si no es de España.</div>
+      <div class="tel-in">
+        <label class="pais"><span id="paisVer" aria-hidden="true">🇪🇸 +34</span><select id="pais" aria-label="País del móvil"></select></label>
+        <input type="tel" id="tel" autocomplete="tel-national" inputmode="tel" placeholder="600 123 456" maxlength="20" required>
+      </div>
+      <div class="err" id="telErr">Revisa el número: son 9 cifras, sin el +34.</div>
     </div>
     <div class="f" id="fMail">
       <label for="email">Email <small>(opcional)</small></label>
@@ -392,7 +403,7 @@ function pintarQuien(){
   w.hidden=false;
   w.innerHTML=`Jugando como <b>${esc(jugador.nombre)}</b> · <button type="button" id="cambiar">No soy yo</button>`;
   $('#cambiar').onclick=()=>{jugador=null;store.del('jugador');store.del('premio');pintarQuien();pintarPendiente();
-    ['#nombre','#tel','#email'].forEach(x=>$(x).value='');$('#promos').checked=false;$('#priv').checked=false};
+    ['#nombre','#tel','#email'].forEach(x=>$(x).value='');$('#pais').value=0;pintarPais();$('#promos').checked=false;$('#priv').checked=false};
 }
 function pintarPendiente(){
   const p=store.get('premio'), box=$('#pendBox');
@@ -453,6 +464,49 @@ $('#legal').innerHTML=`
 $('#verPriv').onclick=e=>{e.preventDefault();abrir('#privSheet')};
 
 // ---------- Formulario ----------
+// Países del selector de móvil (España primero y elegido por defecto)
+const PAISES=[
+  ['ES','España','+34'],['FR','Francia','+33'],['IT','Italia','+39'],['PT','Portugal','+351'],['GB','Reino Unido','+44'],
+  ['DE','Alemania','+49'],['NL','Países Bajos','+31'],['BE','Bélgica','+32'],['CH','Suiza','+41'],['IE','Irlanda','+353'],
+  ['AD','Andorra','+376'],['AT','Austria','+43'],['DK','Dinamarca','+45'],['SE','Suecia','+46'],['NO','Noruega','+47'],
+  ['FI','Finlandia','+358'],['PL','Polonia','+48'],['RO','Rumanía','+40'],['BG','Bulgaria','+359'],['GR','Grecia','+30'],
+  ['UA','Ucrania','+380'],['RU','Rusia','+7'],['MA','Marruecos','+212'],['DZ','Argelia','+213'],
+  ['AR','Argentina','+54'],['UY','Uruguay','+598'],['CL','Chile','+56'],['PY','Paraguay','+595'],['BO','Bolivia','+591'],
+  ['PE','Perú','+51'],['EC','Ecuador','+593'],['CO','Colombia','+57'],['VE','Venezuela','+58'],['MX','México','+52'],
+  ['CU','Cuba','+53'],['US','Estados Unidos / Canadá','+1'],['DO','Rep. Dominicana','+1'],['BR','Brasil','+55'],
+  ['CN','China','+86'],['IN','India','+91'],['PK','Pakistán','+92'],['PH','Filipinas','+63'],['JP','Japón','+81'],
+  ['KR','Corea del Sur','+82'],['AU','Australia','+61'],['IL','Israel','+972'],['TR','Turquía','+90'],
+];
+const bandera=cc=>cc.replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
+$('#pais').innerHTML=PAISES.map(([cc,n,pre],i)=>`<option value="${i}">${bandera(cc)} ${n} (${pre})</option>`).join('');
+function pintarPais(){
+  const [cc,,pre]=PAISES[$('#pais').value||0];
+  $('#paisVer').textContent=`${bandera(cc)} ${pre}`;
+  $('#tel').placeholder=pre==='+34'?'600 123 456':'Número';
+  $('#telErr').textContent=pre==='+34'?'Revisa el número: son 9 cifras, sin el +34.':`Revisa el número (sin el ${pre}).`;
+}
+$('#pais').addEventListener('change',()=>{pintarPais();$('#fTel').classList.remove('bad');$('#tel').focus()});
+pintarPais();
+// Arma el número completo con el prefijo del país elegido. Si el cliente
+// escribió el prefijo igual (+44…, 0044…), se respeta lo que escribió.
+function telCompleto(num,pre){
+  const t=String(num||'').trim();
+  if(/^(\+|00)/.test(t))return normTel(t);
+  let d=t.replace(/\D/g,'');
+  if(pre==='+34')return normTel(d);
+  if(pre!=='+39')d=d.replace(/^0+/,'');                    // el 0 de marcación nacional sobra (salvo Italia)
+  if(d.startsWith(pre.slice(1))&&d.length>9)d=d.slice(pre.length-1);   // ya traía el prefijo sin +
+  return d.length>=6?normTel(pre+d):null;
+}
+// Al completar con lo de la vez anterior: separa prefijo y número
+function ponerTel(full){
+  let i=0,mejor='';
+  PAISES.forEach(([,,pre],k)=>{if(String(full).startsWith(pre)&&pre.length>mejor.length){mejor=pre;i=k}});
+  if(!mejor){$('#tel').value=full||'';return}
+  $('#pais').value=i;pintarPais();
+  const resto=String(full).slice(mejor.length);
+  $('#tel').value=mejor==='+34'?resto.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3'):resto;
+}
 function normTel(t){
   let d=String(t||'').replace(/[^\d+]/g,'');
   if(d.startsWith('00'))d='+'+d.slice(2);
@@ -470,7 +524,7 @@ $('#spin').onclick=()=>{
   document.querySelectorAll('#form .bad').forEach(x=>x.classList.remove('bad'));
   $('#pedido').value='';
   if(jugador){
-    $('#nombre').value=jugador.nombre||'';$('#tel').value=jugador.telefono||'';$('#email').value=jugador.email||'';
+    $('#nombre').value=jugador.nombre||'';ponerTel(jugador.telefono);$('#email').value=jugador.email||'';
     $('#promos').checked=!!jugador.promos;$('#priv').checked=true;
   }
   abrir('#formSheet');
@@ -482,7 +536,7 @@ $('#form').onsubmit=e=>{
   e.preventDefault();
   const pedido=$('#pedido').value.replace(/\D/g,'');
   const nombre=$('#nombre').value.trim().replace(/\s+/g,' ');
-  const tel=normTel($('#tel').value);
+  const tel=telCompleto($('#tel').value,PAISES[$('#pais').value||0][2]);
   const email=$('#email').value.trim().toLowerCase();
   const okMail=!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
   const okPed=/^\d{3}$/.test(pedido);
