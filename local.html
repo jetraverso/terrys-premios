@@ -87,6 +87,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .pill.si{background:var(--ok-soft);color:var(--ok)} .pill.no{background:var(--surface-2);color:var(--muted)}
 .pill.gan{background:var(--warn-soft);color:var(--gold)} .pill.can{background:var(--accent-soft);color:var(--accent)} .pill.ven{background:var(--out-soft);color:var(--out-ink)}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.btn.mini{padding:6px 12px;font-size:13px;border-radius:8px}
+td.act{text-align:right}
+.tabs{overflow-x:auto}
+.tabs button{white-space:nowrap}
+.tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--out);color:#1a0f09;font-size:12px;line-height:18px;text-align:center}
+.sub{color:var(--muted);font-size:13px}
 .empty{padding:24px;text-align:center;color:var(--muted)}
 
 /* QR */
@@ -128,7 +134,7 @@ if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo
 // ---------- Datos ----------
 const demoDb=()=>{try{return JSON.parse(localStorage.getItem('tp_demo_db'))||{jugadores:{},jugadas:[]}}catch{return{jugadores:{},jugadas:[]}}};
 const demoSave=db=>{try{localStorage.setItem('tp_demo_db',JSON.stringify(db))}catch{}};
-let email='', J=[], P=[], tab='jugadores';
+let email='', J=[], P=[], tab='pendientes';
 
 async function cargar(){
   if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));}
@@ -203,8 +209,10 @@ function pintarApp(){
     </section>
     <div class="cards" id="cards"></div>
     <div class="tabs" role="tablist">
+      <button role="tab" data-t="pendientes">Por canjear<span class="cnt" id="cntPend"></span></button>
+      <button role="tab" data-t="canjeados">Canjeados</button>
+      <button role="tab" data-t="jugadas">Jugadas</button>
       <button role="tab" data-t="jugadores">Jugadores</button>
-      <button role="tab" data-t="jugadas">Jugadas y premios</button>
       <button role="tab" data-t="qr">QR del flyer</button>
     </div>
     <div class="panel" id="panel"></div>
@@ -272,17 +280,81 @@ function pintarResumen(){
 
 function pintarTab(){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab));
-  ({jugadores:tabJugadores,jugadas:tabJugadas,qr:tabQr})[tab]();
+  const n=P.filter(esPendiente).length, c=$('#cntPend');
+  if(c){c.textContent=n||'';c.hidden=!n}
+  ({pendientes:tabPendientes,canjeados:tabCanjeados,jugadores:tabJugadores,jugadas:tabJugadas,qr:tabQr})[tab]();
+}
+const esPendiente=x=>x.codigo&&!x.canjeado&&x.vence>=hoyISO();
+const pedidoTxt=x=>x.pedido?`#${esc(x.pedido)}`:'—';
+const quien=x=>`${esc(x.nombre||'')} <span class="sub">··· ${esc(String(x.telefono||'').slice(-3))}</span>`;
+async function canjearFila(x,btn){
+  if(!confirm(`¿Entregar "${x.premio}" a ${x.nombre}?\n\nPedido Glovo ${x.pedido?'#'+x.pedido:'—'} · código ${x.codigo}\n\nQueda marcado como canjeado.`))return;
+  if(btn)btn.disabled=true;
+  let r;try{r=await canjear(x.codigo)}catch(err){toast('Error: '+err.message);if(btn)btn.disabled=false;return}
+  toast({ok:`Canjeado ✓ ${x.premio}`,ya_canjeado:'Ojo: ya estaba canjeado',vencido:'Vencido: no se puede canjear',no_existe:'No existe'}[r.estado]||r.estado);
+  await cargar();
+}
+async function deshacerFila(x){
+  if(!confirm(`¿Deshacer el canje de "${x.premio}" (${x.nombre})? Vuelve a quedar por canjear.`))return;
+  try{await deshacer(x.codigo)}catch(err){toast('Error: '+err.message);return}
+  toast('Canje deshecho');await cargar();
+}
+function csv(nombre,rows){
+  const t='\ufeff'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=`${nombre}-${hoyISO()}.csv`;a.click();
+}
+function buscador(ph){return`<input type="search" id="q" placeholder="${ph}">`}
+const coincide=(x,q)=>{if(!q)return true;const d=q.replace(/\D/g,'');
+  return String(x.nombre||'').toLowerCase().includes(q.toLowerCase())||String(x.codigo||'').toLowerCase().includes(q.toLowerCase())||(d&&String(x.pedido||'').includes(d))};
+
+function tabPendientes(){
+  $('#panel').innerHTML=`<div class="bar">${buscador('Buscar pedido, nombre o código')}<span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  const draw=()=>{
+    const q=$('#q').value.trim();
+    const L=P.filter(esPendiente).filter(x=>coincide(x,q)).sort((a,b)=>a.vence.localeCompare(b.vence));
+    const venc=P.filter(x=>x.codigo&&!x.canjeado&&x.vence<hoyISO()).length;
+    $('#n').textContent=`${L.length} por canjear${venc?` · ${venc} vencidos`:''}`;
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Vence</th><th></th></tr></thead><tbody>${
+      L.map((x,i)=>`<tr><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td><b>${esc(x.premio)}</b></td>
+        <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${fFecha(x.vence)}</td>
+        <td class="act"><button class="btn ok mini" data-i="${i}">Canjear</button></td></tr>`).join('')
+    }</tbody></table>`:'<div class="empty">No hay premios por canjear.</div>';
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>canjearFila(L[b.dataset.i],b));
+  };
+  $('#q').oninput=draw;draw();
+}
+function tabCanjeados(){
+  $('#panel').innerHTML=`<div class="bar">${buscador('Buscar pedido, nombre o código')}<button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  let L=[];
+  const draw=()=>{
+    const q=$('#q').value.trim();
+    L=P.filter(x=>x.canjeado).filter(x=>coincide(x,q)).sort((a,b)=>b.canjeado.localeCompare(a.canjeado));
+    const mes=hoyISO().slice(0,7), delMes=L.filter(x=>new Date(x.canjeado).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}).startsWith(mes)).length;
+    $('#n').textContent=`${L.length} canjeados · ${delMes} este mes`;
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Canjeado</th><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th></tr></thead><tbody>${
+      L.map((x,i)=>`<tr><td><b>${fHora(x.canjeado)}</b></td><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td>${esc(x.premio)}</td>
+        <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${esc(x.canjeado_por||'')}</td>
+        <td class="act">${(Date.now()-new Date(x.canjeado))<12*3600e3?`<button class="btn sec mini" data-i="${i}">Deshacer</button>`:''}</td></tr>`).join('')
+    }</tbody></table>`:'<div class="empty">Todavía no se canjeó ningún premio.</div>';
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>deshacerFila(L[b.dataset.i]));
+  };
+  $('#q').oninput=draw;
+  $('#csv').onclick=()=>csv('terrys-canjeados',[['Canjeado','Pedido','Dia pedido','Cliente','Movil','Premio','Codigo','Ganado','Lo entrego'],
+    ...L.map(x=>[fHora(x.canjeado),x.pedido?'#'+x.pedido:'',fFecha(x.dia||x.creado),x.nombre,x.telefono,x.premio,x.codigo,fHora(x.creado),x.canjeado_por||''])]);
+  draw();
 }
 function tabJugadores(){
-  $('#panel').innerHTML=`<div class="bar"><input type="search" id="q" placeholder="Buscar nombre, móvil o email"><label><input type="checkbox" id="sp"> Solo aceptan promos</label>
+  $('#panel').innerHTML=`<div class="bar"><input type="search" id="q" placeholder="Buscar nombre, móvil, email o pedido"><label><input type="checkbox" id="sp"> Solo aceptan promos</label>
     <button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
   const draw=()=>{
     const q=$('#q').value.trim().toLowerCase(), sp=$('#sp').checked;
-    const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)));
+    const peds={};for(const x of P)if(x.pedido)(peds[x.telefono]=peds[x.telefono]||[]).push(x.pedido);
+    const d=q.replace(/\D/g,'');
+    const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)||(d.length===3&&(peds[x.telefono]||[]).includes(d))));
     $('#n').textContent=`${L.length} de ${J.length}`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th></tr></thead><tbody>${
-      L.slice(0,500).map(x=>`<tr><td>${esc(x.nombre)}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
+    const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;   // P va de más nueva a más vieja
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último pedido</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th></tr></thead><tbody>${
+      L.slice(0,500).map(x=>`<tr><td>${esc(x.nombre)}</td><td class="code">${ult[x.telefono]?pedidoTxt(ult[x.telefono])+` <span class="sub">${fFecha(ult[x.telefono].dia||ult[x.telefono].creado).slice(0,5)}</span>`:''}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
         <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td></tr>`).join('')
     }</tbody></table>`:'<div class="empty">Todavía no jugó nadie.</div>';
     return L;
@@ -290,8 +362,9 @@ function tabJugadores(){
   $('#q').oninput=draw;$('#sp').onchange=draw;
   $('#csv').onclick=()=>{
     const L=draw();
-    const rows=[['Nombre','Movil','Email','Acepta promos','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
-      ...L.map(x=>[x.nombre,x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
+    const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;
+    const rows=[['Nombre','Ultimo pedido','Movil','Email','Acepta promos','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
+      ...L.map(x=>[x.nombre,ult[x.telefono]?'#'+ult[x.telefono].pedido:'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
     const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`terrys-jugadores-${hoyISO()}.csv`;a.click();
   };
@@ -304,13 +377,15 @@ function tabJugadas(){
     const f=$('#f').value, hoy=hoyISO(), q=$('#qp').value.trim().toUpperCase();
     const L=P.filter(x=>(!q||String(x.pedido||'').includes(q.replace(/[^A-Z0-9]/g,''))||String(x.nombre||'').toUpperCase().includes(q))).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
     $('#n').textContent=`${L.length} jugadas`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th></tr></thead><tbody>${
-      L.slice(0,500).map(x=>{
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th></tr></thead><tbody>${
+      L.slice(0,500).map((x,i)=>{
         const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
         return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${x.pedido?'#'+esc(x.pedido):''}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
-          <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td></tr>`}).join('')
+          <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td>
+          <td class="act">${esPendiente(x)?`<button class="btn ok mini" data-i="${i}">Canjear</button>`:''}</td></tr>`}).join('')
     }</tbody></table>`:'<div class="empty">No hay jugadas con ese filtro.</div>';
     document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>canjearFila(L[b.dataset.i],b));
   };
   $('#f').onchange=draw;$('#qp').oninput=draw;draw();
 }
