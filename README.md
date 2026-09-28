@@ -87,6 +87,12 @@ Repositorio: https://github.com/jetraverso/terrys-premios (GitHub Pages desde la
 
 `local.html` → solapa **QR del flyer** → **Descargar SVG (imprenta)** o PNG. En **Origen** podés poner una palabra distinta por cada lugar donde lo repartas (`flyer`, `glovo`, `mesa`…) y en la lista de jugadores se ve de dónde vino cada uno. Probá el QR impreso con un par de móviles antes de mandar a imprimir todos.
 
+### 5. Flyer de las bolsas
+
+En [`flyer/`](flyer/): **`terrys-flyer-A6.pdf`** para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `…/terrys-premios/?o=flyer`, así en caja se ve quién vino por el flyer.
+
+Para cambiarlo: se edita `flyer/flyer.html` (abriéndolo en el navegador se ve la hoja en grande) y se corre `flyer/exportar.sh`, que vuelve a generar el PDF y el PNG con Chrome. Antes de imprimir muchos, probá el QR impreso con un par de móviles.
+
 ## Cambiar cosas
 
 Todo en Supabase → **Table Editor**:
