@@ -46,17 +46,23 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 /* Máquina: recuadro negro, rodillos blancos */
 .machine{margin:18px 0 0;padding:12px 12px 14px;border-radius:24px;background:var(--ink);position:relative;box-shadow:6px 6px 0 #d9d9d9}
 .lights{display:flex;justify-content:space-between;padding:2px 6px 10px}
-.lights i{width:9px;height:9px;border-radius:50%;border:2px solid var(--paper);background:var(--ink)}
-.machine.spinning .lights i,.machine.win .lights i{animation:blink .4s steps(1) infinite}
-.machine .lights i:nth-child(even){animation-delay:.2s}
-@keyframes blink{50%{background:var(--paper)}}
+.lights i{--c:#e5271b;width:10px;height:10px;border-radius:50%;background:var(--c);opacity:.3}
+.lights i:nth-child(even){--c:#ffc400}
+/* girando: se prenden de a una, alternando rojo y amarillo */
+.machine.spinning .lights i{animation:correr .36s steps(1) infinite}
+.machine.spinning .lights i:nth-child(even){animation-delay:-.18s}
+@keyframes correr{0%{opacity:1;box-shadow:0 0 8px var(--c)}50%{opacity:.3;box-shadow:none}}
+/* premio: todas prendidas y parpadeando unos segundos, después quedan encendidas */
+.machine.win .lights i{opacity:1;box-shadow:0 0 10px var(--c);animation:fiesta .16s steps(1) 22}
+.machine.win .lights i:nth-child(even){animation-delay:.08s}
+@keyframes fiesta{50%{opacity:.25;box-shadow:none}}
 .reels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;position:relative}
 .reel{height:calc(var(--cell)*2.2);overflow:hidden;border-radius:10px;background:var(--paper);position:relative}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,0) 74%,rgba(0,0,0,.55) 100%)}
 .strip{position:absolute;left:0;right:0;top:calc(var(--cell)*-.4);will-change:transform}
 .cell{height:var(--cell);display:grid;place-items:center}
-.cell img{width:92%;height:92%;object-fit:contain;user-select:none;-webkit-user-select:none}
+.cell img{width:74%;height:74%;object-fit:contain;user-select:none;-webkit-user-select:none}
 .strip.loop{animation:loop calc(8 * 35ms) linear infinite}
 .strip.loop .cell img{filter:blur(1.5px)}
 @keyframes loop{from{transform:translateY(0)}to{transform:translateY(calc(var(--cell)*-8))}}
@@ -83,10 +89,9 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .tabla th{background:var(--ink);color:var(--paper);font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.08em;text-align:left;padding:9px 12px 7px}
 .tabla td{padding:10px 12px;border-top:2px solid var(--ink);vertical-align:middle}
 .tabla tbody tr:first-child td{border-top:0}
-.tabla td.im{width:76px;padding:6px 0 6px 8px}
-.tabla td.im img{display:block;width:64px;height:64px;object-fit:contain}
-.tabla td.nom{font-family:var(--display);font-size:24px;letter-spacing:.04em;line-height:1;width:32%}
-.tabla td.nom small{display:block;font-family:var(--body);font-size:12px;letter-spacing:0;color:var(--muted);margin-top:3px}
+.tabla td.im{width:44%;padding:6px 12px 6px 10px;white-space:nowrap}
+.tabla td.im img{display:inline-block;vertical-align:middle;width:68px;height:68px;object-fit:contain}
+.tabla td.im .x3{display:inline-block;vertical-align:middle;margin-left:10px;font-family:var(--display);font-size:30px;letter-spacing:.04em;line-height:1}
 .tabla td.pr{font-weight:700;font-size:16px;line-height:1.25;border-left:2px solid var(--ink)}
 .reglas{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
 .reglas li{padding-left:22px;position:relative}
@@ -158,7 +163,7 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .demo{position:fixed;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;background:var(--ink);color:var(--paper);font-size:12px;padding:3px 10px;border-radius:8px 8px 0 0;z-index:30}
 canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@media (prefers-reduced-motion:reduce){.reel.hit,.machine.win .payline{animation:none}}
+@media (prefers-reduced-motion:reduce){.reel.hit,.machine.win .payline,.machine .lights i{animation:none!important}}
 @media (max-width:360px){:root{--cell:80px}}
 </style>
 </head>
@@ -196,7 +201,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <h2 id="tPremios">Premios</h2>
   <p class="intro">Si en la línea del medio salen <b>3 iguales</b>, ganas:</p>
   <table class="tabla">
-    <thead><tr><th colspan="2">Si salen 3</th><th>Te llevas</th></tr></thead>
+    <thead><tr><th>Si salen</th><th>Te llevas</th></tr></thead>
     <tbody id="prizeList"></tbody>
   </table>
   <ul class="reglas">
@@ -309,7 +314,7 @@ const nombreDe=s=>(PREMIOS.find(p=>p.simbolo===s)||{}).premio||'';
 if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · no guarda en la base</div>');
 
 // ---------- Tabla de premios ----------
-$('#prizeList').innerHTML=PREMIOS.map(p=>`<tr><td class="im">${ico(p.simbolo)}</td><td class="nom">${esc(p.personaje)}<small>× 3</small></td><td class="pr">${esc(p.premio)}</td></tr>`).join('');
+$('#prizeList').innerHTML=PREMIOS.map(p=>`<tr><td class="im">${ico(p.simbolo)}<span class="x3">× 3</span></td><td class="pr">${esc(p.premio)}</td></tr>`).join('');
 $('#asText').textContent=NEGOCIO.local?`Terry's Burgers · ${NEGOCIO.local}`:'';
 
 // ---------- Rodillos ----------
