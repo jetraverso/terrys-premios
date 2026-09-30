@@ -46,7 +46,7 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 /* Canje */
 .canje{margin-top:18px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
 .canje h2,.panel h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03em;line-height:1.1}
-.canje form{display:flex;gap:8px;margin-top:10px}
+.canje .cf{display:flex;gap:8px;margin-top:10px}
 .canje input{font-family:var(--display);font-size:30px;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
 .canje input::placeholder{letter-spacing:.08em;opacity:.35}
 .res{margin-top:14px}
@@ -94,6 +94,19 @@ td.act{text-align:right}
 .tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--out);color:#1a0f09;font-size:12px;line-height:18px;text-align:center}
 .sub{color:var(--muted);font-size:13px}
 .empty{padding:24px;text-align:center;color:var(--muted)}
+/* Un bloque por día: el de hoy abierto, los anteriores plegados */
+.dias{display:grid;gap:8px}
+.dia{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.dia>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;user-select:none}
+.dia>summary::-webkit-details-marker{display:none}
+.dia>summary::before{content:"";flex:none;width:0;height:0;border:5px solid transparent;border-left:7px solid var(--muted);transition:transform .15s}
+.dia[open]>summary::before{transform:rotate(90deg) translateX(2px)}
+.dia>summary b{font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.04em}
+.dia>summary .hoy{background:var(--out);color:#1a0f09;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700}
+.dia>summary .r{margin-left:auto;color:var(--muted);font-size:13px;text-align:right}
+.dia[open]>summary{border-bottom:1px solid var(--line)}
+.dia .tw{border:0;border-radius:0}
+.dia .empty{padding:16px}
 
 /* QR */
 .qr{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start}
@@ -204,7 +217,9 @@ function pintarApp(){
       <div class="me">${esc(email)} ${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
     <section class="canje">
       <h2>Canjear un premio</h2>
-      <form id="cf"><input type="text" id="ci" placeholder="T-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10" aria-label="Código del premio"><button class="btn">Buscar</button></form>
+      <div class="cf" id="cf" role="search"><input type="text" id="ci" name="terrys-premio-buscar" placeholder="T-XXXXX" readonly
+        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" inputmode="text" enterkeyhint="search" maxlength="10"
+        aria-label="Buscar premio" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"><button class="btn" type="button" id="cb">Buscar</button></div>
       <div class="res" id="cr"></div>
     </section>
     <div class="cards" id="cards"></div>
@@ -219,8 +234,13 @@ function pintarApp(){
   </div>`;
   if(SB)$('#salir').onclick=async()=>{await sbc.auth.signOut();pintarLogin()};
   document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;pintarTab()});
-  $('#cf').onsubmit=async e=>{e.preventDefault();verCodigo($('#ci').value)};
-  $('#ci').focus();
+  // No es un <form> ni toma el foco solo: así el navegador y los gestores de contraseñas
+  // no ofrecen autocompletar ni abren carteles. Solo se escribe cuando se toca el campo.
+  const ci=$('#ci');
+  const soltar=()=>ci.removeAttribute('readonly');
+  ci.addEventListener('pointerdown',soltar);ci.addEventListener('focus',soltar);
+  ci.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();verCodigo(ci.value)}});
+  $('#cb').onclick=()=>verCodigo(ci.value);
 }
 
 async function verCodigo(raw,msg){
@@ -248,7 +268,7 @@ async function verCodigo(raw,msg){
       ${recien?`<button class="btn sec" id="deshacer">Deshacer canje</button>`:''}
       <button class="btn sec" id="limpiar">Otro código</button>
     </div></div>`;
-  const limpiar=()=>{box.innerHTML='';$('#ci').value='';$('#ci').focus()};
+  const limpiar=()=>{box.innerHTML='';$('#ci').value=''};
   $('#limpiar').onclick=limpiar;
   if($('#entregar'))$('#entregar').onclick=async()=>{
     if(!confirm(`¿Entregar "${j.premio}" a ${j.nombre}? Queda marcado como canjeado.`))return;
@@ -323,19 +343,44 @@ function tabPendientes(){
   };
   $('#q').oninput=draw;draw();
 }
+// ---------- Agrupar por día ----------
+const diaDe=f=>new Date(f).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const soloHora=f=>f?new Date(f).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):'';
+const nombreDia=d=>{const t=new Date(d+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});return t.charAt(0).toUpperCase()+t.slice(1)};
+const abiertos={};   // por solapa: qué días abrió o cerró a mano (se recuerda mientras la página está abierta)
+// L: filas (de más nueva a más vieja) · fecha(x): fecha de la fila · cab: <th>… · fila(x,i): <tr>… · resumen(filas): texto del día
+function porDia(cont,clave,L,{fecha,cab,fila,resumen,vacioHoy,todoAbierto}){
+  const hoy=hoyISO(), g=new Map();
+  L.forEach((x,i)=>{const d=diaDe(fecha(x));if(!g.has(d))g.set(d,[]);g.get(d).push([x,i])});
+  const dias=[...g.keys()].sort().reverse();
+  if(!todoAbierto&&!dias.includes(hoy))dias.unshift(hoy);           // hoy siempre está, aunque esté vacío
+  const mem=abiertos[clave]=abiertos[clave]||{};
+  cont.className='dias';
+  cont.innerHTML=dias.map(d=>{
+    const filas=g.get(d)||[], open=todoAbierto||(d in mem?mem[d]:d===hoy);
+    return`<details class="dia" data-d="${d}"${open?' open':''}><summary><b>${esc(nombreDia(d))}</b>${d===hoy?'<span class="hoy">Hoy</span>':''}<span class="r">${esc(resumen(filas.map(f=>f[0])))}</span></summary>${
+      filas.length?`<div class="tw"><table><thead><tr>${cab}</tr></thead><tbody>${filas.map(([x,i])=>fila(x,i)).join('')}</tbody></table></div>`:`<div class="empty">${esc(vacioHoy)}</div>`}</details>`;
+  }).join('');
+  if(!todoAbierto)cont.querySelectorAll('details.dia').forEach(el=>el.addEventListener('toggle',()=>{mem[el.dataset.d]=el.open}));
+}
+
 function tabCanjeados(){
-  $('#panel').innerHTML=`<div class="bar">${buscador('Buscar pedido, nombre o código')}<button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  $('#panel').innerHTML=`<div class="bar">${buscador('Buscar pedido, nombre o código')}<button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div id="tw"></div>`;
   let L=[];
   const draw=()=>{
     const q=$('#q').value.trim();
     L=P.filter(x=>x.canjeado).filter(x=>coincide(x,q)).sort((a,b)=>b.canjeado.localeCompare(a.canjeado));
     const mes=hoyISO().slice(0,7), delMes=L.filter(x=>new Date(x.canjeado).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}).startsWith(mes)).length;
     $('#n').textContent=`${L.length} canjeados · ${delMes} este mes`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Canjeado</th><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th></tr></thead><tbody>${
-      L.map((x,i)=>`<tr><td><b>${fHora(x.canjeado)}</b></td><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td>${esc(x.premio)}</td>
+    porDia($('#tw'),'canjeados',L,{
+      fecha:x=>x.canjeado, todoAbierto:!!q,
+      cab:'<th>Hora</th><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th>',
+      fila:(x,i)=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td>${esc(x.premio)}</td>
         <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${esc(x.canjeado_por||'')}</td>
-        <td class="act">${(Date.now()-new Date(x.canjeado))<12*3600e3?`<button class="btn sec mini" data-i="${i}">Deshacer</button>`:''}</td></tr>`).join('')
-    }</tbody></table>`:'<div class="empty">Todavía no se canjeó ningún premio.</div>';
+        <td class="act">${(Date.now()-new Date(x.canjeado))<12*3600e3?`<button class="btn sec mini" data-i="${i}">Deshacer</button>`:''}</td></tr>`,
+      resumen:f=>f.length?`${f.length} ${f.length===1?'canjeado':'canjeados'}`:'',
+      vacioHoy:q?'Nada con esa búsqueda.':'Hoy todavía no se canjeó ningún premio.'});
+    if(q&&!L.length)$('#tw').innerHTML='<div class="empty">Nada con esa búsqueda.</div>';
     document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>deshacerFila(L[b.dataset.i]));
   };
   $('#q').oninput=draw;
@@ -372,18 +417,23 @@ function tabJugadores(){
 }
 function tabJugadas(){
   $('#panel').innerHTML=`<div class="bar"><input type="search" id="qp" placeholder="Buscar pedido o nombre"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
-    <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+    <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div id="tw"></div>`;
   const draw=()=>{
     const f=$('#f').value, hoy=hoyISO(), q=$('#qp').value.trim().toUpperCase();
     const L=P.filter(x=>(!q||String(x.pedido||'').includes(q.replace(/[^A-Z0-9]/g,''))||String(x.nombre||'').toUpperCase().includes(q))).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
     $('#n').textContent=`${L.length} jugadas`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th></tr></thead><tbody>${
-      L.slice(0,500).map((x,i)=>{
+    const filtrando=!!(q||f);
+    porDia($('#tw'),'jugadas',L,{
+      fecha:x=>x.creado, todoAbierto:filtrando,
+      cab:'<th>Hora</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th>',
+      fila:(x,i)=>{
         const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
-        return`<tr><td>${fHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${x.pedido?'#'+esc(x.pedido):''}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
+        return`<tr><td>${soloHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${x.pedido?'#'+esc(x.pedido):''}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
           <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td>
-          <td class="act">${esPendiente(x)?`<button class="btn ok mini" data-i="${i}">Canjear</button>`:''}</td></tr>`}).join('')
-    }</tbody></table>`:'<div class="empty">No hay jugadas con ese filtro.</div>';
+          <td class="act">${esPendiente(x)?`<button class="btn ok mini" data-i="${i}">Canjear</button>`:''}</td></tr>`},
+      resumen:fl=>{if(!fl.length)return'';const g=fl.filter(x=>x.codigo).length;return`${fl.length} ${fl.length===1?'jugada':'jugadas'} · ${g} con premio`},
+      vacioHoy:'Hoy todavía no jugó nadie.'});
+    if(filtrando&&!L.length)$('#tw').innerHTML='<div class="empty">No hay jugadas con esa búsqueda.</div>';
     document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
     document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>canjearFila(L[b.dataset.i],b));
   };

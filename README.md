@@ -47,11 +47,13 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 3. **Entregar y marcar canjeado.** Si ya estaba canjeado o vencido, lo dice en gris o amarillo y no deja canjearlo.
 4. Si se tocó por error, **Deshacer canje** (hasta 12 horas después).
 
+El recuadro del código no toma el cursor solo al abrir la página ni ofrece autocompletar: solo se escribe cuando se lo toca.
+
 También se puede canjear sin escribir el código, desde las solapas de abajo:
 
 - **Por canjear** (con el número de pendientes): todos los premios vigentes con pedido de Glovo, cliente, premio, código y vencimiento, y un botón **Canjear** en cada uno. Se busca por pedido (`482`), nombre o código.
-- **Canjeados:** el historial de lo entregado: cuándo, qué pedido, a quién, qué premio y quién lo entregó (el usuario de caja). Tiene **Deshacer** durante 12 horas y se descarga en CSV.
-- **Jugadas:** todas las tiradas con su pedido, resultado y estado; las que tienen premio pendiente también tienen botón **Canjear**.
+- **Canjeados:** el historial de lo entregado, también agrupado por día de canje: cuándo, qué pedido, a quién, qué premio y quién lo entregó (el usuario de caja). Tiene **Deshacer** durante 12 horas y se descarga en CSV.
+- **Jugadas:** todas las tiradas con su pedido, resultado y estado, **agrupadas por día**: el día de hoy abierto y los anteriores plegados (se abren tocándolos), cada uno con su resumen ("3 jugadas · 2 con premio"). Al buscar o filtrar se abren solos los días que tienen resultados. Las que tienen premio pendiente también tienen botón **Canjear**.
 - **Jugadores:** la base de clientes, con su **último pedido**, link a WhatsApp y CSV. Se puede buscar también por número de pedido.
 - **QR del flyer.**
 
