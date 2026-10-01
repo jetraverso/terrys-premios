@@ -54,7 +54,7 @@ También se puede canjear sin escribir el código, desde las solapas de abajo:
 - **Por canjear** (con el número de pendientes): todos los premios vigentes con pedido de Glovo, cliente, premio, código y vencimiento, y un botón **Canjear** en cada uno. Se busca por pedido (`482`), nombre o código.
 - **Canjeados:** el historial de lo entregado, también agrupado por día de canje: cuándo, qué pedido, a quién, qué premio y quién lo entregó (el usuario de caja). Tiene **Deshacer** durante 12 horas y se descarga en CSV.
 - **Jugadas:** todas las tiradas con su pedido, resultado y estado, **agrupadas por día**: el día de hoy abierto y los anteriores plegados (se abren tocándolos), cada uno con su resumen ("3 jugadas · 2 con premio"). Al buscar o filtrar se abren solos los días que tienen resultados. Las que tienen premio pendiente también tienen botón **Canjear**.
-- **Jugadores:** la base de clientes, con su **último pedido**, link a WhatsApp y CSV. Se puede buscar también por número de pedido.
+- **Jugadores:** la base de clientes, con su **último pedido**, link a WhatsApp y CSV. Se puede buscar también por número de pedido. Cada jugador tiene a la derecha una **papelera** para eliminarlo si está mal cargado: siempre pide confirmación, avisa cuántas jugadas y premios se borran con él (incluidos los ya canjeados, que salen del historial) y no se puede deshacer.
 - **QR del flyer.**
 
 Arriba, las tarjetas con las jugadas de hoy y de la semana, jugadores, premios dados y canjeados.
@@ -107,7 +107,7 @@ Todo en Supabase → **Table Editor**:
   - `dias_entre_jugadas` — días de espera entre tiradas de un mismo móvil, además del pedido (0 = ninguna: cada pedido juega).
   - `dias_validez` — cuántos días dura un premio (30). Vale para los premios nuevos.
   - `max_premios_dia` — tope de premios por día (vacío = sin tope). Pasado el tope, todos pierden hasta el día siguiente.
-- **Borrar a alguien** (si lo pide, por RGPD): Table Editor → `premios_jugadores` → borrar su fila (se borran solas sus jugadas).
+- **Borrar a alguien** (si está mal cargado o lo pide, por RGPD): con la papelera en Caja → Jugadores, o en Table Editor → `premios_jugadores` → borrar su fila. Se borran solas sus jugadas.
 
 ## Límites a tener en cuenta
 

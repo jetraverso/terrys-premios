@@ -343,6 +343,27 @@ begin
     'canjeado', j.canjeado, 'vence', j.vence, 'premio', j.premio, 'simbolo', j.simbolo);
 end $$;
 
+-- ---------------------------------------------------------------
+-- 9. Borrar un jugador cargado mal (desde la página del local).
+--    Se borran también todas sus jugadas y premios (on delete cascade).
+-- ---------------------------------------------------------------
+create or replace function public.premios_borrar_jugador(p_telefono text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  tel text := coalesce(public.premios_tel(p_telefono), p_telefono);
+  n   int;
+  g   int;
+begin
+  if not public.premios_es_staff() then raise exception 'Sin permiso'; end if;
+  select count(*), count(codigo) into n, g from premios_jugadas where telefono = tel;
+  delete from premios_jugadores where telefono = tel;
+  if not found then return jsonb_build_object('estado', 'no_existe'); end if;
+  return jsonb_build_object('estado', 'ok', 'jugadas', n, 'premios', g);
+end $$;
+
+revoke execute on function public.premios_borrar_jugador(text) from public;
+grant  execute on function public.premios_borrar_jugador(text) to authenticated;
+
 revoke execute on function public.premios_estado(text, text) from public;
 grant  execute on function public.premios_estado(text, text) to anon, authenticated;
 
