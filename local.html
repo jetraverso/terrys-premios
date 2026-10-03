@@ -156,7 +156,7 @@ async function cargar(){
   if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));}
   else{
     const [a,b]=await Promise.all([
-      sbc.from('premios_jugadores').select('*').order('ultima_jugada',{ascending:false,nullsFirst:false}).limit(10000),
+      sbc.from('premios_jugadores').select('telefono,nombre,email,acepta_promos,origen,pedidos,tiros,jugadas,premios,primera_jugada,ultima_jugada').order('ultima_jugada',{ascending:false,nullsFirst:false}).limit(10000),
       sbc.from('premios_jugadas').select('*,premios_jugadores(nombre)').order('creado',{ascending:false}).limit(3000),
     ]);
     if(a.error||b.error){toast('No se pudo cargar: '+(a.error||b.error).message);return}
@@ -187,7 +187,7 @@ async function borrarJugador(tel){
   if(!SB){
     const db=demoDb();if(!db.jugadores[tel])return{estado:'no_existe'};
     const n=db.jugadas.filter(x=>x.telefono===tel);
-    delete db.jugadores[tel];db.jugadas=db.jugadas.filter(x=>x.telefono!==tel);demoSave(db);
+    delete db.jugadores[tel];db.jugadas=db.jugadas.filter(x=>x.telefono!==tel);db.pedidos=(db.pedidos||[]).filter(x=>x.telefono!==tel);demoSave(db);
     return{estado:'ok',jugadas:n.length,premios:n.filter(x=>x.codigo).length};
   }
   const {data,error}=await sbc.rpc('premios_borrar_jugador',{p_telefono:tel});
@@ -424,9 +424,9 @@ function tabJugadores(){
     const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)||(d.length===3&&(peds[x.telefono]||[]).includes(d))));
     $('#n').textContent=`${L.length} de ${J.length}`;
     const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;   // P va de más nueva a más vieja
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último pedido</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th><th></th></tr></thead><tbody>${
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último pedido</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Pedidos</th><th class="num">Tiros</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th><th></th></tr></thead><tbody>${
       L.slice(0,500).map((x,i)=>`<tr><td>${esc(x.nombre)}</td><td class="code">${ult[x.telefono]?pedidoTxt(ult[x.telefono])+` <span class="sub">${fFecha(ult[x.telefono].dia||ult[x.telefono].creado).slice(0,5)}</span>`:''}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
-        <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td>
+        <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num"><b>${x.pedidos??0}</b></td><td class="num">${x.tiros??0}</td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td>
         <td class="act"><button class="tacho" type="button" data-b="${i}" title="Eliminar jugador" aria-label="Eliminar a ${esc(x.nombre)}">${TACHO}</button></td></tr>`).join('')
     }</tbody></table>`:'<div class="empty">Todavía no jugó nadie.</div>';
     document.querySelectorAll('#tw button[data-b]').forEach(b=>b.onclick=()=>borrarFila(L[b.dataset.b],b));
@@ -436,8 +436,8 @@ function tabJugadores(){
   $('#csv').onclick=()=>{
     const L=draw();
     const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;
-    const rows=[['Nombre','Ultimo pedido','Movil','Email','Acepta promos','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
-      ...L.map(x=>[x.nombre,ult[x.telefono]?'#'+ult[x.telefono].pedido:'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
+    const rows=[['Nombre','Ultimo pedido','Movil','Email','Acepta promos','Pedidos','Tiros sin usar','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
+      ...L.map(x=>[x.nombre,ult[x.telefono]?'#'+ult[x.telefono].pedido:'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.pedidos??0,x.tiros??0,x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
     const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`terrys-jugadores-${hoyISO()}.csv`;a.click();
   };
