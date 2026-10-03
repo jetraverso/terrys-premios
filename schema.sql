@@ -11,17 +11,12 @@
 create table if not exists public.premios_config (
   id                 int primary key default 1 check (id = 1),
   activo             boolean not null default true,  -- false = la ruleta se apaga
-  dias_entre_jugadas int     not null default 0,     -- (ya no se usa: ahora manda el saldo de tiros)
+  dias_entre_jugadas int     not null default 0,     -- días de espera entre jugadas de un mismo móvil (0 = cada pedido juega)
   dias_validez       int     not null default 30,    -- cuántos días dura un premio para canjear
   max_premios_dia    int                             -- tope de premios por día (vacío = sin tope)
 );
-alter table public.premios_config add column if not exists max_jugadas_dia  int not null default 0;  -- tope de tiros por móvil y por día (0 = sin tope)
-alter table public.premios_config add column if not exists tiros_por_pedido int not null default 3;  -- tiros que da cada pedido registrado
-alter table public.premios_config add column if not exists max_pedidos_dia  int not null default 3;  -- pedidos por móvil y por día (freno a números inventados; 0 = sin tope)
-alter table public.premios_config add column if not exists bono_cada_5      int not null default 3;  -- tiros extra en los pedidos 5, 15, 25…
-alter table public.premios_config add column if not exists bono_cada_10     int not null default 6;  -- tiros extra en los pedidos 10, 20, 30…
-alter table public.premios_config alter column max_jugadas_dia set default 0;
-comment on column public.premios_config.max_jugadas_dia is 'Tope de tiros por móvil y por día (0 = sin tope)';
+alter table public.premios_config add column if not exists max_jugadas_dia int not null default 3;
+comment on column public.premios_config.max_jugadas_dia is 'Máximo de jugadas por móvil y por día (freno a números de pedido inventados)';
 insert into public.premios_config (id) values (1) on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------
@@ -40,16 +35,14 @@ alter table public.premios_catalogo drop constraint if exists premios_catalogo_s
 alter table public.premios_catalogo add column if not exists personaje text not null default '';
 -- Todos los símbolos de esta tabla salen en los rodillos (aunque tengan probabilidad 0).
 insert into public.premios_catalogo (simbolo, personaje, premio, probabilidad, orden) values
-  ('logo',    'Logo Terry''s', 'Menú Terry''s gratis',     0.2, 1),
-  ('burgers', 'Los Terry''s',  'Burger Terry''s gratis',   0.3, 2),
-  ('perro',   'Rumpi',    'Burger Rumpi gratis',      0.5, 3),
-  ('botella', 'Buba',     'Burger Buba gratis',       0.5, 4),
-  ('lata',    'Russel',   'Burger Russel gratis',     0.5, 5),
-  ('bacon',   'Torch',    'Burger Torch gratis',      0.5, 6),
-  ('patatas', 'Zulma',    'Burger Zulma gratis',      0.5, 7),
-  ('cerveza', 'Cerveza',  'Copa de cerveza gratis',   4,   8),
-  ('desc10',  '10%',      '10% de descuento',         8,   9),
-  ('desc5',   '5%',       '5% de descuento',          18,  10)
+  ('logo',    'Logo Terry''s', 'Menú Terry''s gratis',     0.5, 1),
+  ('burgers', 'Los Terry''s',  'Burger Terry''s gratis',   1,   2),
+  ('perro',   'Rumpi',    'Burger Rumpi gratis',      1.5, 3),
+  ('botella', 'Buba',     'Burger Buba gratis',       1.5, 4),
+  ('lata',    'Russel',   'Burger Russel gratis',     1.5, 5),
+  ('bacon',   'Torch',    'Burger Torch gratis',      1.5, 6),
+  ('patatas', 'Zulma',    'Burger Zulma gratis',      1.5, 7),
+  ('cerveza', 'Cerveza',  'Copa de cerveza gratis',   12,  8)
 on conflict (simbolo) do nothing;
 
 -- ---------------------------------------------------------------
@@ -85,9 +78,6 @@ create table if not exists public.premios_jugadores (
   primera_jugada timestamptz not null default now(),
   ultima_jugada  timestamptz
 );
-alter table public.premios_jugadores add column if not exists pedidos    int not null default 0;  -- pedidos registrados (para los bonos)
-alter table public.premios_jugadores add column if not exists tiros      int not null default 0;  -- tiros que le quedan por usar
-alter table public.premios_jugadores add column if not exists token_hash text;                    -- llave del móvil que juega (md5)
 
 create table if not exists public.premios_jugadas (
   id           bigint generated always as identity primary key,
@@ -108,49 +98,24 @@ alter table public.premios_jugadas add column if not exists pedido text;
 alter table public.premios_jugadas add column if not exists dia date not null default ((now() at time zone 'Europe/Madrid')::date);
 update public.premios_jugadas set dia = (creado at time zone 'Europe/Madrid')::date
  where dia <> (creado at time zone 'Europe/Madrid')::date;
--- Ahora un pedido da varios tiros: la regla "un número por día" vive en premios_pedidos
+-- Glovo repite los números de pedido (# y 3 números): cada número juega una vez por día
 drop index if exists public.premios_jugadas_pedido_idx;
-drop index if exists public.premios_jugadas_pedido_dia_idx;
-create index if not exists premios_jugadas_ped_idx on public.premios_jugadas (pedido, dia);
-
--- Cada pedido de Glovo registrado. Glovo repite los números (# y 3 números),
--- así que cada número vale una vez por día.
-create table if not exists public.premios_pedidos (
-  id       bigint generated always as identity primary key,
-  telefono text not null references public.premios_jugadores (telefono) on update cascade on delete cascade,
-  pedido   text not null,
-  dia      date not null default ((now() at time zone 'Europe/Madrid')::date),
-  creado   timestamptz not null default now(),
-  tiros    int not null default 0,          -- tiros que dio (incluido el bono)
-  bono     int not null default 0,          -- de esos, cuántos fueron de bono
-  unique (pedido, dia)
-);
-create index if not exists premios_pedidos_tel_idx on public.premios_pedidos (telefono, creado desc);
--- Los pedidos de antes (1 tiro cada uno) pasan a esta tabla, y el contador de cada jugador se recalcula
-insert into public.premios_pedidos (telefono, pedido, dia, creado, tiros)
-select distinct on (pedido, dia) telefono, pedido, dia, creado, 1
-  from public.premios_jugadas where pedido is not null
- order by pedido, dia, creado
-on conflict (pedido, dia) do nothing;
-update public.premios_jugadores j set pedidos = c.n
-  from (select telefono, count(*) n from public.premios_pedidos group by telefono) c
- where c.telefono = j.telefono and j.pedidos <> c.n;
+create unique index if not exists premios_jugadas_pedido_dia_idx on public.premios_jugadas (pedido, dia);
 create index if not exists premios_jugadas_tel_idx    on public.premios_jugadas (telefono, creado desc);
 create index if not exists premios_jugadas_creado_idx on public.premios_jugadas (creado desc);
 
 -- Nadie de afuera lee ni escribe las tablas directo: el cliente solo puede
--- llamar a las funciones de abajo, y el local solo ve si está en premios_staff.
+-- llamar a premios_jugar(), y el local solo ve si está en premios_staff.
 alter table public.premios_config    enable row level security;
 alter table public.premios_catalogo  enable row level security;
 alter table public.premios_staff     enable row level security;
 alter table public.premios_jugadores enable row level security;
 alter table public.premios_jugadas   enable row level security;
-alter table public.premios_pedidos   enable row level security;
 
 revoke all on public.premios_config, public.premios_catalogo, public.premios_staff,
-              public.premios_jugadores, public.premios_jugadas, public.premios_pedidos from anon, authenticated;
+              public.premios_jugadores, public.premios_jugadas from anon, authenticated;
 grant select on public.premios_config, public.premios_catalogo,
-                public.premios_jugadores, public.premios_jugadas, public.premios_pedidos to authenticated;
+                public.premios_jugadores, public.premios_jugadas to authenticated;
 
 drop policy if exists premios_staff_lee on public.premios_config;
 create policy premios_staff_lee on public.premios_config    for select to authenticated using (public.premios_es_staff());
@@ -160,8 +125,6 @@ drop policy if exists premios_staff_lee on public.premios_jugadores;
 create policy premios_staff_lee on public.premios_jugadores for select to authenticated using (public.premios_es_staff());
 drop policy if exists premios_staff_lee on public.premios_jugadas;
 create policy premios_staff_lee on public.premios_jugadas   for select to authenticated using (public.premios_es_staff());
-drop policy if exists premios_staff_lee on public.premios_pedidos;
-create policy premios_staff_lee on public.premios_pedidos   for select to authenticated using (public.premios_es_staff());
 
 -- ---------------------------------------------------------------
 -- 5. Teléfono: siempre igual escrito, así no juega dos veces
@@ -181,149 +144,100 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------
--- 6. Jugar, en dos pasos. Lo llama la página del QR; el resultado se decide
---    acá (en el servidor), así nadie puede hacer trampa desde el navegador.
---    a) premios_registrar_pedido: el cliente pone su pedido de Glovo y suma
---       tiros (3 por pedido + bono cada 5 pedidos). Devuelve una llave para
---       ese móvil.
---    b) premios_tirar: gasta un tiro (con la llave) y gira.
+-- 6. Jugar: lo llama la página del QR. El resultado se decide acá
+--    (en el servidor), así nadie puede hacer trampa desde el navegador.
+--    Cada número de pedido de Glovo (# y 3 números) juega una vez por día.
 -- ---------------------------------------------------------------
 create or replace function public.premios_pedido(p text)
 returns text language sql immutable as $$
   select nullif(regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g'), '');
 $$;
 
--- Próximo bono: pedidos 5, 15, 25… dan bono_cada_5; 10, 20, 30… dan bono_cada_10
-create or replace function public.premios_bono(n int, cfg public.premios_config)
-returns int language sql immutable as $$
-  select case when n > 0 and n % 10 = 0 then cfg.bono_cada_10
-              when n > 0 and n % 5 = 0 then cfg.bono_cada_5 else 0 end;
-$$;
-create or replace function public.premios_proximo_bono(n int, cfg public.premios_config)
-returns jsonb language sql immutable as $$
-  select jsonb_build_object('pedidos', m, 'tiros', public.premios_bono(m, cfg))
-    from (select (n / 5 + 1) * 5 as m) x;
-$$;
-
 drop function if exists public.premios_jugar(text, text, text, boolean, text);
-drop function if exists public.premios_jugar(text, text, text, text, boolean, text);
-
-create or replace function public.premios_registrar_pedido(
+create or replace function public.premios_jugar(
   p_nombre text, p_telefono text, p_pedido text, p_email text default null,
   p_promos boolean default false, p_origen text default null)
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare
-  cfg  public.premios_config;
-  tel  text := public.premios_tel(p_telefono);
-  nom  text := left(btrim(regexp_replace(coalesce(p_nombre, ''), '\s+', ' ', 'g')), 60);
-  mail text := nullif(lower(left(btrim(coalesce(p_email, '')), 120)), '');
-  ped  text := public.premios_pedido(p_pedido);
-  ori  text := nullif(left(regexp_replace(coalesce(p_origen, ''), '[^a-zA-Z0-9_-]', '', 'g'), 40), '');
-  hoy  date := (now() at time zone 'Europe/Madrid')::date;
-  usado public.premios_pedidos;
-  jug  public.premios_jugadores;
-  tok  text := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
-  bono int;
+  cfg   public.premios_config;
+  tel   text := public.premios_tel(p_telefono);
+  nom   text := left(btrim(regexp_replace(coalesce(p_nombre, ''), '\s+', ' ', 'g')), 60);
+  mail  text := nullif(lower(left(btrim(coalesce(p_email, '')), 120)), '');
+  ped   text := public.premios_pedido(p_pedido);
+  ori   text := nullif(left(regexp_replace(coalesce(p_origen, ''), '[^a-zA-Z0-9_-]', '', 'g'), 40), '');
+  hoy   date := (now() at time zone 'Europe/Madrid')::date;
+  ult   public.premios_jugadas;
+  pend  public.premios_jugadas;
+  c     record;
+  r     numeric := random() * 100;
+  acc   numeric := 0;
+  sim   text;
+  prem  text;
+  rod   text[];
+  cod   text;
+  vto   date;
+  syms  text[];
+  n     int;
+  alf   text := 'ACDEFGHJKLMNPQRTUVWXY34679';
 begin
   select * into cfg from premios_config where id = 1;
   if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
   if length(nom) < 2 then return jsonb_build_object('estado', 'error', 'campo', 'nombre'); end if;
   if tel is null then return jsonb_build_object('estado', 'error', 'campo', 'telefono'); end if;
-  if ped is null or ped !~ '^[0-9]{3}$' then return jsonb_build_object('estado', 'error', 'campo', 'pedido'); end if;
+  if ped is null or ped !~ '^[0-9]{3}$' then
+    return jsonb_build_object('estado', 'error', 'campo', 'pedido');
+  end if;
   if mail is not null and mail !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
     return jsonb_build_object('estado', 'error', 'campo', 'email');
   end if;
 
-  -- De a uno por pedido y por teléfono (dos toques rápidos no suman dos veces)
+  -- Una jugada a la vez por pedido y por teléfono (dos toques rápidos no juegan dos veces)
   perform pg_advisory_xact_lock(hashtext('premios:pedido:' || ped || ':' || hoy));
   perform pg_advisory_xact_lock(hashtext('premios:' || tel));
 
-  select * into usado from premios_pedidos where pedido = ped and dia = hoy;
-  if usado.id is not null then
-    -- Si es la misma persona (mismo móvil y nombre), recupera sus tiros en este móvil
-    select * into jug from premios_jugadores where telefono = tel;
-    if usado.telefono = tel and lower(jug.nombre) = lower(nom) then
-      update premios_jugadores set token_hash = md5(tok) where telefono = tel;
-      return jsonb_build_object('estado', 'pedido_usado', 'propio', true, 'token', tok,
-        'tiros', jug.tiros, 'pedidos', jug.pedidos, 'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
-    end if;
-    return jsonb_build_object('estado', 'pedido_usado', 'propio', false);
+  -- Pedido ya jugado. Si es la misma persona (mismo móvil y nombre), se le
+  -- vuelve a mostrar su premio si tiene uno sin canjear.
+  select j.* into pend from premios_jugadas j join premios_jugadores p using (telefono)
+    where j.pedido = ped and j.dia = hoy;
+  if pend.id is not null then
+    return jsonb_build_object('estado', 'pedido_usado',
+      'pendiente', case when pend.telefono = tel and lower((select nombre from premios_jugadores where telefono = tel)) = lower(nom)
+                         and pend.codigo is not null and pend.canjeado is null and pend.vence >= hoy
+                   then jsonb_build_object('codigo', pend.codigo, 'premio', pend.premio, 'simbolo', pend.simbolo, 'vence', pend.vence) end);
   end if;
+  pend := null;
 
-  if cfg.max_pedidos_dia > 0 and (select count(*) from premios_pedidos where telefono = tel and dia = hoy) >= cfg.max_pedidos_dia then
+  -- Freno a números de pedido inventados: pocas jugadas por móvil y por día
+  if cfg.max_jugadas_dia > 0 and (
+       select count(*) from premios_jugadas
+       where telefono = tel and (creado at time zone 'Europe/Madrid')::date = hoy
+     ) >= cfg.max_jugadas_dia then
     return jsonb_build_object('estado', 'tope_dia');
   end if;
 
+  select * into ult from premios_jugadas where telefono = tel order by creado desc limit 1;
+  if ult.id is not null and cfg.dias_entre_jugadas > 0
+     and ult.creado > now() - make_interval(days => cfg.dias_entre_jugadas) then
+    -- El premio pendiente solo se muestra si el nombre coincide con el guardado
+    -- (así no alcanza con saber el móvil de otro para ver su código)
+    select j.* into pend from premios_jugadas j join premios_jugadores p using (telefono)
+      where j.telefono = tel and j.codigo is not null and j.canjeado is null and j.vence >= hoy
+        and lower(p.nombre) = lower(nom)
+      order by j.creado desc limit 1;
+    return jsonb_build_object(
+      'estado', 'espera',
+      'proxima', ult.creado + make_interval(days => cfg.dias_entre_jugadas),
+      'pendiente', case when pend.id is null then null else jsonb_build_object(
+        'codigo', pend.codigo, 'premio', pend.premio, 'simbolo', pend.simbolo, 'vence', pend.vence) end);
+  end if;
+
+  -- Se guardan (o actualizan) los datos solo cuando de verdad juega
   insert into premios_jugadores (telefono, nombre, email, acepta_promos, origen)
   values (tel, nom, mail, coalesce(p_promos, false), ori)
   on conflict (telefono) do update
     set nombre = excluded.nombre,
         email = coalesce(excluded.email, premios_jugadores.email),
         acepta_promos = excluded.acepta_promos;
-
-  update premios_jugadores set pedidos = pedidos + 1 where telefono = tel returning * into jug;
-  bono := public.premios_bono(jug.pedidos, cfg);
-  update premios_jugadores
-     set tiros = tiros + cfg.tiros_por_pedido + bono, token_hash = md5(tok)
-   where telefono = tel returning * into jug;
-  insert into premios_pedidos (telefono, pedido, dia, tiros, bono)
-  values (tel, ped, hoy, cfg.tiros_por_pedido + bono, bono);
-
-  return jsonb_build_object('estado', 'ok', 'token', tok, 'tiros', jug.tiros, 'pedidos', jug.pedidos,
-    'sumados', cfg.tiros_por_pedido, 'bono', bono, 'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
-end $$;
-
--- Saldo del móvil (al abrir la página)
-create or replace function public.premios_saldo(p_telefono text, p_token text)
-returns jsonb language plpgsql stable security definer set search_path = public as $$
-declare
-  cfg public.premios_config;
-  jug public.premios_jugadores;
-begin
-  select * into cfg from premios_config where id = 1;
-  select * into jug from premios_jugadores where telefono = public.premios_tel(p_telefono);
-  if jug.telefono is null or jug.token_hash is null or jug.token_hash <> md5(coalesce(p_token, '')) then
-    return jsonb_build_object('estado', 'sesion');
-  end if;
-  return jsonb_build_object('estado', 'ok', 'tiros', jug.tiros, 'pedidos', jug.pedidos,
-    'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
-end $$;
-
-create or replace function public.premios_tirar(p_telefono text, p_token text)
-returns jsonb language plpgsql volatile security definer set search_path = public as $$
-declare
-  cfg  public.premios_config;
-  tel  text := public.premios_tel(p_telefono);
-  hoy  date := (now() at time zone 'Europe/Madrid')::date;
-  jug  public.premios_jugadores;
-  ped  public.premios_pedidos;
-  c    record;
-  r    numeric := random() * 100;
-  acc  numeric := 0;
-  sim  text;
-  prem text;
-  rod  text[];
-  cod  text;
-  vto  date;
-  syms text[];
-  n    int;
-  alf  text := 'ACDEFGHJKLMNPQRTUVWXY34679';
-begin
-  select * into cfg from premios_config where id = 1;
-  if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
-  if tel is null then return jsonb_build_object('estado', 'sesion'); end if;
-
-  perform pg_advisory_xact_lock(hashtext('premios:' || tel));
-  select * into jug from premios_jugadores where telefono = tel;
-  if jug.telefono is null or jug.token_hash is null or jug.token_hash <> md5(coalesce(p_token, '')) then
-    return jsonb_build_object('estado', 'sesion');
-  end if;
-  if jug.tiros <= 0 then
-    return jsonb_build_object('estado', 'sin_tiros', 'pedidos', jug.pedidos, 'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
-  end if;
-  if cfg.max_jugadas_dia > 0 and (select count(*) from premios_jugadas where telefono = tel and dia = hoy) >= cfg.max_jugadas_dia then
-    return jsonb_build_object('estado', 'tope_dia');
-  end if;
 
   select array_agg(simbolo order by orden) into syms from premios_catalogo;
   n := coalesce(array_length(syms, 1), 0);
@@ -335,7 +249,8 @@ begin
   end loop;
 
   if sim is not null and cfg.max_premios_dia is not null and (
-       select count(*) from premios_jugadas where codigo is not null and dia = hoy
+       select count(*) from premios_jugadas
+       where codigo is not null and (creado at time zone 'Europe/Madrid')::date = hoy
      ) >= cfg.max_premios_dia then
     sim := null; prem := null;
   end if;
@@ -355,22 +270,19 @@ begin
     end if;
   end if;
 
-  -- La jugada queda asociada al último pedido registrado
-  select * into ped from premios_pedidos where telefono = tel order by creado desc limit 1;
   insert into premios_jugadas (telefono, rodillos, simbolo, premio, codigo, vence, origen, pedido, dia)
-  values (tel, rod, sim, prem, cod, vto, jug.origen, ped.pedido, hoy);
+  values (tel, rod, sim, prem, cod, vto, ori, ped, hoy);
 
   update premios_jugadores
-     set tiros = tiros - 1,
-         jugadas = jugadas + 1,
+     set jugadas = jugadas + 1,
          premios = premios + (sim is not null)::int,
          ultima_jugada = now()
-   where telefono = tel returning * into jug;
+   where telefono = tel;
 
   return jsonb_build_object(
     'estado', 'ok', 'rodillos', to_jsonb(rod), 'simbolo', sim, 'premio', prem,
-    'codigo', cod, 'vence', vto, 'tiros', jug.tiros, 'pedidos', jug.pedidos,
-    'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
+    'codigo', cod, 'vence', vto,
+    'proxima', case when cfg.dias_entre_jugadas > 0 then now() + make_interval(days => cfg.dias_entre_jugadas) end);
 end $$;
 
 -- ---------------------------------------------------------------
@@ -455,14 +367,10 @@ grant  execute on function public.premios_borrar_jugador(text) to authenticated;
 revoke execute on function public.premios_estado(text, text) from public;
 grant  execute on function public.premios_estado(text, text) to anon, authenticated;
 
-revoke execute on function public.premios_registrar_pedido(text, text, text, text, boolean, text) from public;
-revoke execute on function public.premios_tirar(text, text)    from public;
-revoke execute on function public.premios_saldo(text, text)    from public;
+revoke execute on function public.premios_jugar(text, text, text, text, boolean, text) from public;
 revoke execute on function public.premios_canjear(text)        from public;
 revoke execute on function public.premios_deshacer_canje(text) from public;
-grant  execute on function public.premios_registrar_pedido(text, text, text, text, boolean, text) to anon, authenticated;
-grant  execute on function public.premios_tirar(text, text)    to anon, authenticated;
-grant  execute on function public.premios_saldo(text, text)    to anon, authenticated;
+grant  execute on function public.premios_jugar(text, text, text, text, boolean, text) to anon, authenticated;
 grant  execute on function public.premios_canjear(text)        to authenticated;
 grant  execute on function public.premios_deshacer_canje(text) to authenticated;
 grant  execute on function public.premios_es_staff()           to authenticated;
