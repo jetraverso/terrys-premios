@@ -4,8 +4,10 @@ La ruleta del QR de los folletos. La primera vez el cliente juega **3 tiros de r
 
 Publicada en GitHub Pages:
 
-- Ruleta (a donde lleva el QR): https://jetraverso.github.io/terrys-premios/
-- Caja: https://jetraverso.github.io/terrys-premios/local.html
+- Ruleta (a donde lleva el QR): https://ruleta.terrysburgers.com/
+- Caja: https://ruleta.terrysburgers.com/local.html
+
+El subdominio está en los DNS de GoDaddy (registro CNAME `ruleta` → `jetraverso.github.io`) y configurado como dominio propio de GitHub Pages (archivo `CNAME`). Las direcciones viejas (`jetraverso.github.io/terrys-premios/…`) redirigen solas a las nuevas, así que los QR ya impresos siguen funcionando.
 
 Son dos páginas:
 
@@ -105,10 +107,10 @@ Repositorio: https://github.com/jetraverso/terrys-premios (GitHub Pages desde la
 
 En [`flyer/`](flyer/) hay dos, en A6:
 
-- **Folleto para repartir** (`terrys-folleto-A6.pdf` / `.png`): "3 tiros gratis, sin registrarte". QR a `…/terrys-premios/?o=folleto`.
-- **Flyer de las bolsas** (`terrys-flyer-A6.pdf` / `.png`): "Pon tu ticket, número y fecha". QR a `…/terrys-premios/?o=flyer`.
+- **Folleto para repartir** (`terrys-folleto-A6.pdf` / `.png`): "3 tiros gratis, sin registrarte". QR a `ruleta.terrysburgers.com/?o=folleto`.
+- **Flyer de las bolsas** (`terrys-flyer-A6.pdf` / `.png`): "Pon tu ticket, número y fecha". QR a `ruleta.terrysburgers.com/?o=flyer`.
 
-Cada uno: el PDF para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `…/terrys-premios/?o=flyer`, así en caja se ve quién vino por el flyer.
+Cada uno: el PDF para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `ruleta.terrysburgers.com/?o=flyer`, así en caja se ve quién vino por el flyer.
 
 Para cambiarlos: se edita `flyer/folleto.html` o `flyer/flyer.html` (abriéndolo en el navegador se ve la hoja en grande) y se corre `flyer/exportar.sh`, que vuelve a generar el PDF y el PNG con Chrome. Antes de imprimir muchos, probá el QR impreso con un par de móviles.
 
