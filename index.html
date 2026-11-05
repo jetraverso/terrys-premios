@@ -38,7 +38,7 @@ html{scroll-snap-type:y proximity;scroll-behavior:smooth}
 /* Cabecera */
 .top{text-align:center}
 .lead{font-size:15px}
-.logo{display:block;width:min(78%,300px);height:auto;margin:0 auto}
+.logo{display:block;width:min(66%,270px);height:auto;margin:0 auto}
 h1{font-family:var(--display);font-weight:400;font-size:clamp(48px,15vw,64px);line-height:1;letter-spacing:.03em;margin-top:14px}
 h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em;border-radius:6px}
 .lead{color:var(--ink-2);margin:10px auto 0;max-width:30ch;font-weight:500}
@@ -46,6 +46,11 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 /* Máquina: recuadro negro, rodillos blancos */
 .machine{margin:18px 0 0;padding:12px 12px 14px;border-radius:24px;background:var(--ink);position:relative;box-shadow:6px 6px 0 #d9d9d9}
 .lights{display:flex;justify-content:space-between;padding:2px 6px 10px}
+/* Botón de sonido, arriba a la derecha */
+.juego{position:relative}
+.sonido{position:absolute;top:12px;right:10px;width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:var(--paper);color:var(--ink);display:grid;place-items:center;cursor:pointer;z-index:2}
+.sonido svg{width:18px;height:18px}
+.sonido:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .lights i{--c:#e5271b;width:10px;height:10px;border-radius:50%;background:var(--c);opacity:.3}
 .lights i:nth-child(even){--c:#ffc400}
 /* girando: se prenden de a una, alternando rojo y amarillo */
@@ -232,6 +237,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <p class="lead">Saca tres iguales y llévate un premio para canjear en el local.</p>
   </header>
 
+  <button class="sonido" id="sonido" type="button" aria-label="Silenciar sonido" aria-pressed="true"></button>
   <div class="machine" id="machine" aria-label="Tragaperras">
     <div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="reels">
@@ -774,26 +780,77 @@ async function enviarFormulario(j){
   }finally{enviando=false;$('#go').disabled=false;$('#go').textContent=txt}
 }
 // Giro común: anima los rodillos y frena donde dice la base
+// ---------- Sonido ----------
+// Generado en el momento (sin archivos): tic-tic mientras giran, "toc" al frenar
+// cada rodillo y una musiquita corta al ganar. Volumen bajo; se puede silenciar.
+const Sonido={
+  ctx:null, on:store.get('sonido')!==false, VOL:.5,
+  asegurar(){
+    if(!this.on)return null;
+    try{
+      if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;this.ctx=new AC();
+        this.master=this.ctx.createGain();this.master.gain.value=this.VOL;this.master.connect(this.ctx.destination)}
+      if(this.ctx.state==='suspended')this.ctx.resume();
+    }catch(e){return null}
+    return this.ctx;
+  },
+  nota(f,dur,{tipo='triangle',vol=.06,desde=0,hasta=null}={}){
+    const c=this.asegurar();if(!c)return;
+    const t=c.currentTime+desde, o=c.createOscillator(), g=c.createGain();
+    o.type=tipo;o.frequency.setValueAtTime(f,t);if(hasta)o.frequency.exponentialRampToValueAtTime(hasta,t+dur);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+.02);
+  },
+  tic(){this.nota(1500,.025,{tipo:'square',vol:.018})},
+  toc(){this.nota(240,.12,{tipo:'sine',vol:.09,hasta:90});this.nota(900,.03,{tipo:'triangle',vol:.03})},
+  premio(){[523,659,784,1047,1319].forEach((f,i)=>this.nota(f,.22,{vol:.05,desde:i*.09}));this.nota(1047,.5,{vol:.035,desde:.5})},
+  // Un tic cada vez que una figura del último rodillo pasa por la línea:
+  // rápido al girar y cada vez más espaciado mientras frena
+  seguir(strip){
+    if(!this.on)return ()=>{};
+    let ult=null, tUlt=0;
+    const H=cellH();
+    // Temporizador común (no depende de que el navegador dibuje cuadros)
+    const reloj=setInterval(()=>{
+      const t=performance.now(), m=getComputedStyle(strip).transform, y=m&&m!=='none'?-new DOMMatrixReadOnly(m).m42:0, k=Math.floor(y/H);
+      if(ult!==null&&k!==ult&&t-tUlt>45){this.tic();tUlt=t}
+      ult=k;
+    },16);
+    return ()=>clearInterval(reloj);
+  },
+  pintar(){
+    const b=$('#sonido');
+    b.innerHTML=this.on?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+      :'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    b.setAttribute('aria-label',this.on?'Silenciar sonido':'Activar sonido');b.setAttribute('aria-pressed',String(this.on));
+  }
+};
+Sonido.pintar();
+$('#sonido').onclick=()=>{Sonido.on=!Sonido.on;store.set('sonido',Sonido.on);Sonido.pintar();if(Sonido.on){Sonido.asegurar();Sonido.toc()}};
+
 async function girar(llamada){
   if(girando)return null;
   cerrar('#resSheet');
   girando=true;
   const m=$('#machine');m.classList.remove('win');m.classList.add('spinning');
   $('#spin').disabled=true;$('#spin').textContent='Girando…';
+  Sonido.asegurar();                       // el navegador solo deja sonar después de un toque
   strips.forEach(startLoop);
+  const parar=Sonido.seguir(strips[2]);
   const t0=Date.now();
   let r;
   try{r=await llamada()}catch(err){r={estado:'falla'}}
   await new Promise(ok=>setTimeout(ok,Math.max(0,900-(Date.now()-t0))));
-  if(r.estado==='ok')await Promise.all(strips.map((s,i)=>stopAt(s,r.rodillos[i],1100+i*650)));
-  else await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250)));
+  if(r.estado==='ok')await Promise.all(strips.map((s,i)=>stopAt(s,r.rodillos[i],1100+i*650).then(()=>Sonido.toc())));
+  else await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250).then(()=>Sonido.toc())));
+  parar();
   m.classList.remove('spinning');
   girando=false;$('#spin').disabled=false;
   return r;
 }
 function festejar(){
   const m=$('#machine');m.classList.add('win');reels.forEach(x=>x.classList.add('hit'));setTimeout(()=>reels.forEach(x=>x.classList.remove('hit')),1300);
-  confeti();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
+  confeti();Sonido.premio();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
 }
 // Tiros de regalo, sin registrarse
 async function tirarVisita(){
