@@ -17,4 +17,9 @@ URL2="file://$PWD/folleto.html?exportar"
 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=8000 \
   --window-size=397,560 --force-device-scale-factor=3.1236 \
   --screenshot="$PWD/terrys-folleto-A6.png" "$URL2" 2>/dev/null
-ls -la terrys-flyer-A6.* terrys-folleto-A6.*
+# Hojas A4 con 4 de cada uno, para imprenta o impresora común
+for f in folleto flyer; do
+  "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=12000 \
+    --print-to-pdf="$PWD/terrys-$f-A4-x4.pdf" "file://$PWD/hoja-a4.html?f=$f&exportar" 2>/dev/null
+done
+ls -la terrys-flyer-A6.* terrys-folleto-A6.* terrys-*-A4-x4.pdf

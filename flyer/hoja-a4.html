@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Terry's · Hoja A4 con 4 folletos</title>
+<meta name="robots" content="noindex">
+<style>
+/* 4 folletos A6 (105 × 148 mm) en una hoja A4 (210 × 297 mm), con líneas de corte.
+   Uso: hoja-a4.html?f=folleto (calle) o ?f=flyer (bolsas). Se exporta con exportar.sh */
+@page{size:210mm 297mm;margin:0}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#fff}
+body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hoja{width:210mm;height:297mm;position:relative;display:grid;grid-template-columns:105mm 105mm;grid-template-rows:148mm 148mm;row-gap:1mm;align-content:center}
+iframe{width:105mm;height:148mm;border:0;display:block;overflow:hidden}
+/* líneas de corte: finas, grises y cortadas, sobre los bordes blancos de los folletos */
+.corte{position:absolute;pointer-events:none}
+.corte.v{left:105mm;top:0;bottom:0;border-left:.2mm dashed #b5b5b5}
+.corte.h{top:148.5mm;left:0;right:0;border-top:.2mm dashed #b5b5b5}
+.marca{position:absolute;width:6mm;height:6mm;pointer-events:none}
+@media screen{body:not(.exportar){background:#e9e9e9;padding:24px}body:not(.exportar) .hoja{margin:0 auto;box-shadow:0 10px 40px rgba(0,0,0,.25);background:#fff}}
+</style>
+</head>
+<body>
+<div class="hoja" id="hoja"></div>
+<script>
+const qs=new URLSearchParams(location.search);
+const f=qs.get('f')==='flyer'?'flyer':'folleto';
+document.title=f==='flyer'?"Terry's · Hoja A4 con 4 flyers de bolsa":"Terry's · Hoja A4 con 4 folletos";
+if(qs.has('exportar'))document.body.classList.add('exportar');
+document.getElementById('hoja').innerHTML=Array(4).fill(`<iframe src="${f}.html?exportar" scrolling="no" title="Folleto"></iframe>`).join('')
+  +'<div class="corte v"></div><div class="corte h"></div>';
+</script>
+</body>
+</html>

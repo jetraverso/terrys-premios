@@ -110,6 +110,8 @@ En [`flyer/`](flyer/) hay dos, en A6:
 - **Folleto para repartir** (`terrys-folleto-A6.pdf` / `.png`): "3 tiros gratis, sin registrarte". QR a `ruleta.terrysburgers.com/?o=folleto`.
 - **Flyer de las bolsas** (`terrys-flyer-A6.pdf` / `.png`): "Pon tu ticket, número y fecha". QR a `ruleta.terrysburgers.com/?o=flyer`.
 
+Y para imprimir en hojas A4, **`terrys-folleto-A4-x4.pdf`** y **`terrys-flyer-A4-x4.pdf`**: 4 por hoja (2 × 2), con líneas de corte en el medio. Los arma `flyer/hoja-a4.html`.
+
 Cada uno: el PDF para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `ruleta.terrysburgers.com/?o=flyer`, así en caja se ve quién vino por el flyer.
 
 Para cambiarlos: se edita `flyer/folleto.html` o `flyer/flyer.html` (abriéndolo en el navegador se ve la hoja en grande) y se corre `flyer/exportar.sh`, que vuelve a generar el PDF y el PNG con Chrome. Antes de imprimir muchos, probá el QR impreso con un par de móviles.
