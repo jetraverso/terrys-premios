@@ -17,7 +17,7 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 ## Cómo funciona
 
 - **El resultado lo decide Supabase, no el navegador.** La página solo anima los rodillos hasta donde le dice el servidor, así nadie puede hacer trampa tocando el código de la página.
-- **Primero se juega, después se registra.** Quien escanea por primera vez (folleto `?o=folleto` o flyer de la bolsa) tiene **3 tiros de regalo**, una vez por móvil, sin poner ningún dato. Si gana, ve qué ganó pero **el código recién aparece cuando se registra**: así ganar es lo que lo lleva a dejar sus datos. Cada número de teléfono cobra premios de bienvenida **una sola vez**: si alguien juega en otro móvil y se registra con un número que ya los cobró, lo de ese móvil no cuenta.
+- **Primero se juega, después se registra.** Quien escanea por primera vez (folleto `?o=folleto` o flyer de la bolsa) tiene **3 tiros de regalo con premio seguro**, una vez por móvil, sin poner ningún dato: **exactamente uno** de los 3 tiros gana (cuál, al azar) y los otros dos no. El premio de bienvenida sale con su propio reparto: **2x1 en cerveza 50 %, 5 % de descuento 25 %, 10 % de descuento 20 %, una burger 5 %** (`prob_bienvenida` y `premio_bienvenida` en `premios_catalogo`). Ve qué ganó pero **el código recién aparece cuando se registra**: así ganar es lo que lo lleva a dejar sus datos. Cada número de teléfono cobra premios de bienvenida **una sola vez**: si alguien juega en otro móvil y se registra con un número que ya los cobró, lo de ese móvil no cuenta.
 - **Tickets de compra:** para seguir jugando, el cliente (ya registrado) pone el **número y la fecha de su ticket** de Ágora. Cada ticket suma **3 tiros** y vale una sola vez. Se acepta hasta 7 días atrás (`dias_ticket`).
 - **Verificación con Ágora:** los tickets se comparan con las ventas que Ágora sube cada noche a la base (tabla `ventas_dias` de Administración):
   - si ese día ya está cargado, el número **tiene que existir ese día**: si no, se rechaza ("no coincide con una compra de esa fecha");
@@ -115,6 +115,8 @@ Para cambiarlos: se edita `flyer/folleto.html` o `flyer/flyer.html` (abriéndolo
 ## Cambiar cosas
 
 Todo en Supabase → **Table Editor**:
+
+- **Premio seguro de bienvenida** (`premios_catalogo`): `prob_bienvenida` reparte el premio de la primera vez entre los símbolos (que sumen 100; con 0 no sale) y `premio_bienvenida` le cambia el nombre solo en ese caso (por ejemplo la cerveza: "2x1 en cerveza" en vez de "Copa de cerveza gratis"). Si cambiás el nombre, cambialo también en `PREMIOS` de `index.html` (`premioB`).
 
 - **`premios_catalogo`** — un renglón por personaje: `simbolo` (el nombre de su imagen en `img/`), `premio` y `probabilidad` (en %). Lo que falte para 100 es "sin premio". Con probabilidad 0 sigue saliendo en los rodillos pero nunca da premio. *Si cambiás un premio o agregás un personaje, cambialo también en la lista `PREMIOS` de `index.html` (es lo que muestra la página); un personaje nuevo necesita su imagen en `img/` (cuadrada, fondo transparente, `.webp`).*
 - **`premios_config`**:

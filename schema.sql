@@ -54,6 +54,20 @@ insert into public.premios_catalogo (simbolo, personaje, premio, probabilidad, o
   ('desc5',   '5%',       '5% de descuento',          18,  10)
 on conflict (simbolo) do nothing;
 
+-- Premio seguro de bienvenida: la primera vez en un móvil, uno de los 3 tiros de
+-- regalo gana sí o sí. prob_bienvenida reparte ese premio entre los símbolos
+-- (suman 100) y premio_bienvenida cambia el nombre del premio solo en ese caso
+-- (vacío = el mismo premio de siempre).
+alter table public.premios_catalogo add column if not exists prob_bienvenida   numeric(5,2) not null default 0 check (prob_bienvenida between 0 and 100);
+alter table public.premios_catalogo add column if not exists premio_bienvenida text;
+-- Valores iniciales (solo si todavía no se cargó ninguno)
+update public.premios_catalogo c
+   set prob_bienvenida = v.p, premio_bienvenida = v.pr
+  from (values ('cerveza', 50::numeric, '2x1 en cerveza'), ('desc5', 25, null), ('desc10', 20, null),
+               ('perro', 1, null), ('botella', 1, null), ('lata', 1, null), ('bacon', 1, null), ('patatas', 1, null)) v(s, p, pr)
+ where c.simbolo = v.s
+   and not exists (select 1 from public.premios_catalogo where prob_bienvenida > 0);
+
 -- ---------------------------------------------------------------
 -- 3. Quién puede entrar a la página del local
 -- ---------------------------------------------------------------
@@ -151,6 +165,7 @@ create table if not exists public.premios_visitantes (
   telefono   text references public.premios_jugadores (telefono) on update cascade on delete set null,
   registrado timestamptz
 );
+alter table public.premios_visitantes add column if not exists tiro_premio int;  -- cuál de los tiros de regalo gana (1, 2 o 3), al azar
 alter table public.premios_jugadores add column if not exists bienvenida timestamptz;  -- cuándo cobró sus premios de bienvenida
 alter table public.premios_jugadas alter column telefono drop not null;                 -- vacío = jugada de bienvenida sin registrarse todavía
 alter table public.premios_jugadas add column if not exists visitante bigint references public.premios_visitantes (id) on delete cascade;
@@ -321,8 +336,11 @@ begin
     'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
 end $$;
 
--- El sorteo en sí: elige premio según las chances, arma los rodillos y el código
-create or replace function public.premios_sorteo(cfg public.premios_config)
+-- El sorteo en sí: elige premio según las chances, arma los rodillos y el código.
+-- modo: 'normal' (chances de siempre) · 'bienvenida' (gana seguro, chances de bienvenida)
+--       · 'nada' (no gana; a veces queda en "casi")
+drop function if exists public.premios_sorteo(public.premios_config);
+create or replace function public.premios_sorteo(cfg public.premios_config, modo text default 'normal')
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare
   hoy  date := (now() at time zone 'Europe/Madrid')::date;
@@ -342,12 +360,21 @@ begin
   n := coalesce(array_length(syms, 1), 0);
   if n < 2 then return null; end if;
 
-  for c in select * from premios_catalogo where probabilidad > 0 order by orden loop
-    acc := acc + c.probabilidad;
-    if r < acc then sim := c.simbolo; prem := c.premio; exit; end if;
-  end loop;
+  if modo = 'bienvenida' then
+    -- Gana seguro: se reparte según prob_bienvenida (si no suman 100, se escala)
+    select r * sum(prob_bienvenida) / 100 into r from premios_catalogo where prob_bienvenida > 0;
+    for c in select * from premios_catalogo where prob_bienvenida > 0 order by orden loop
+      acc := acc + c.prob_bienvenida;
+      if r < acc then sim := c.simbolo; prem := coalesce(nullif(c.premio_bienvenida, ''), c.premio); exit; end if;
+    end loop;
+  elsif modo = 'normal' then
+    for c in select * from premios_catalogo where probabilidad > 0 order by orden loop
+      acc := acc + c.probabilidad;
+      if r < acc then sim := c.simbolo; prem := c.premio; exit; end if;
+    end loop;
+  end if;
 
-  if sim is not null and cfg.max_premios_dia is not null and (
+  if modo = 'normal' and sim is not null and cfg.max_premios_dia is not null and (
        select count(*) from premios_jugadas where codigo is not null and dia = hoy
      ) >= cfg.max_premios_dia then
     sim := null; prem := null;
@@ -436,7 +463,8 @@ begin
   select * into cfg from premios_config where id = 1;
   if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
   if length(coalesce(p_secreto, '')) not between 20 and 100 then return jsonb_build_object('estado', 'error'); end if;
-  insert into premios_visitantes (huella, tiros, origen) values (md5(p_secreto), cfg.tiros_bienvenida, ori)
+  insert into premios_visitantes (huella, tiros, origen, tiro_premio)
+  values (md5(p_secreto), cfg.tiros_bienvenida, ori, 1 + floor(random() * greatest(cfg.tiros_bienvenida, 1))::int)
   on conflict (huella) do nothing;
   select * into v from premios_visitantes where huella = md5(p_secreto);
   return jsonb_build_object('estado', 'ok', 'tiros', v.tiros, 'registrado', v.telefono is not null,
@@ -450,6 +478,7 @@ declare
   v   public.premios_visitantes;
   hoy date := (now() at time zone 'Europe/Madrid')::date;
   s   jsonb;
+  k   int;
 begin
   select * into cfg from premios_config where id = 1;
   if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
@@ -458,7 +487,21 @@ begin
   if v.telefono is not null then return jsonb_build_object('estado', 'registrado'); end if;
   if v.tiros <= 0 then return jsonb_build_object('estado', 'sin_tiros'); end if;
 
-  s := public.premios_sorteo(cfg);
+  -- Premio seguro: gana exactamente uno de los tiros de regalo (el que tocó al azar).
+  -- Si por algún motivo llega al último sin haber ganado, gana ese.
+  if v.tiro_premio is null then
+    update premios_visitantes set tiro_premio = 1 + floor(random() * greatest(v.tiros, 1))::int + (cfg.tiros_bienvenida - v.tiros)
+     where id = v.id returning * into v;
+  end if;
+  k := (select count(*) from premios_jugadas where visitante = v.id) + 1;
+
+  if exists (select 1 from premios_jugadas where visitante = v.id and codigo is not null) then
+    s := public.premios_sorteo(cfg, 'nada');
+  elsif k >= v.tiro_premio or v.tiros = 1 then
+    s := public.premios_sorteo(cfg, 'bienvenida');
+  else
+    s := public.premios_sorteo(cfg, 'nada');
+  end if;
   if s is null then return jsonb_build_object('estado', 'cerrado'); end if;
   insert into premios_jugadas (telefono, visitante, rodillos, simbolo, premio, codigo, vence, origen, canal, dia)
   values (null, v.id, array(select jsonb_array_elements_text(s->'rodillos')), s->>'simbolo', s->>'premio', s->>'codigo',
@@ -740,7 +783,7 @@ grant  execute on function public.premios_borrar_jugador(text) to authenticated;
 revoke execute on function public.premios_estado(text, text) from public;
 grant  execute on function public.premios_estado(text, text) to anon, authenticated;
 
-revoke execute on function public.premios_sorteo(public.premios_config) from public, anon, authenticated;
+revoke execute on function public.premios_sorteo(public.premios_config, text) from public, anon, authenticated;
 revoke execute on function public.premios_agora_ticket(int, date) from public, anon, authenticated;
 revoke execute on function public.premios_visita(text, text)       from public;
 revoke execute on function public.premios_tirar_visita(text)       from public;

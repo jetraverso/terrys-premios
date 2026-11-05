@@ -260,7 +260,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <tbody id="prizeList"></tbody>
   </table>
   <ul class="reglas">
-    <li><b>La primera vez, 3 tiros de regalo</b>, sin registrarte. Si ganas, te registras para guardar tu premio.</li>
+    <li><b>La primera vez, 3 tiros de regalo y premio seguro</b>, sin registrarte: 2x1 en cerveza, un descuento o, con suerte, una burger. Te registras para guardarlo y lo cambias en el local.</li>
     <li><b>3 tiros por cada pedido:</b> pones el número de ticket y la fecha, y se suman a tu saldo.</li>
     <li><b>Bonos:</b> cada 5 tickets te regalamos tiros extra. +3 en el 5º, +6 en el 10º, +3 en el 15º, +6 en el 20º… y así.</li>
     <li>Los descuentos son para tu próxima compra en el local, uno por compra.</li>
@@ -368,14 +368,14 @@ const NEGOCIO={
 const PREMIOS=[
   {simbolo:'logo',    personaje:"Logo Terry's", premio:"Menú Terry's gratis",     prob:0.2},
   {simbolo:'burgers', personaje:"Los Terry's",  premio:"Burger Terry's gratis",   prob:0.3},
-  {simbolo:'perro',   personaje:'Rumpi',   premio:'Burger Rumpi gratis',      prob:0.5},
-  {simbolo:'botella', personaje:'Buba',    premio:'Burger Buba gratis',       prob:0.5},
-  {simbolo:'lata',    personaje:'Russel',  premio:'Burger Russel gratis',     prob:0.5},
-  {simbolo:'bacon',   personaje:'Torch',   premio:'Burger Torch gratis',      prob:0.5},
-  {simbolo:'patatas', personaje:'Zulma',   premio:'Burger Zulma gratis',      prob:0.5},
-  {simbolo:'cerveza', personaje:'Cerveza', premio:'Copa de cerveza gratis',   prob:4},
-  {simbolo:'desc10',  personaje:'10%',     premio:'10% de descuento',         prob:8},
-  {simbolo:'desc5',   personaje:'5%',      premio:'5% de descuento',          prob:18},
+  {simbolo:'perro',   personaje:'Rumpi',   premio:'Burger Rumpi gratis',      prob:0.5, probB:1},
+  {simbolo:'botella', personaje:'Buba',    premio:'Burger Buba gratis',       prob:0.5, probB:1},
+  {simbolo:'lata',    personaje:'Russel',  premio:'Burger Russel gratis',     prob:0.5, probB:1},
+  {simbolo:'bacon',   personaje:'Torch',   premio:'Burger Torch gratis',      prob:0.5, probB:1},
+  {simbolo:'patatas', personaje:'Zulma',   premio:'Burger Zulma gratis',      prob:0.5, probB:1},
+  {simbolo:'cerveza', personaje:'Cerveza', premio:'Copa de cerveza gratis',   prob:4,   probB:50, premioB:'2x1 en cerveza'},
+  {simbolo:'desc10',  personaje:'10%',     premio:'10% de descuento',         prob:8,   probB:20},
+  {simbolo:'desc5',   personaje:'5%',      premio:'5% de descuento',          prob:18,  probB:25},
 ];
 const DEMO={validez:30, tirosPorPedido:3, maxPedidosDia:3, bono5:3, bono10:6, bienvenida:3, diasTicket:7};
 // ------------------------------------------------------------------
@@ -487,7 +487,7 @@ function pintarSaldo(){
     box.hidden=false;
     const oc=ocultos().length;
     box.innerHTML=t>0?`<div class="tiros">Tienes <span class="n">${t}</span> ${t===1?'tiro':'tiros'} de regalo</div>
-        <div class="bono">Juega gratis. Si ganas, te registras para guardar tu premio.</div>`
+        <div class="bono">${ocultos().length?'¡Ya ganaste! Sigue girando y después guarda tu premio.':'Juega gratis: <b>uno de tus tiros trae premio seguro</b>.'}</div>`
       :`<div class="tiros">${oc?`¡Tienes ${oc} ${oc===1?'premio':'premios'} para guardar!`:'Ya usaste tus tiros de regalo'}</div>
         <div class="bono">${oc?'Regístrate para ver tu código y canjearlo en el local.':'Con cada <b>ticket de compra</b> sumas 3 tiros más.'}</div>`;
     return;
@@ -958,9 +958,15 @@ const demoHoy=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid
 const demoBono=n=>n>0&&n%10===0?DEMO.bono10:n>0&&n%5===0?DEMO.bono5:0;
 const demoProx=n=>{const m=(Math.floor(n/5)+1)*5;return{pedidos:m,tiros:demoBono(m)}};
 const demoTok=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
-function demoSorteo(db){
-  const r=Math.random()*100;let acc=0,g=null;
-  for(const p of PREMIOS){acc+=p.prob;if(r<acc){g=p;break}}
+function demoSorteo(db,modo='normal'){
+  let acc=0,g=null,nom=null;
+  if(modo==='bienvenida'){
+    const tot=PREMIOS.reduce((a,p)=>a+(p.probB||0),0), r=Math.random()*tot;
+    for(const p of PREMIOS){acc+=p.probB||0;if(r<acc){g=p;nom=p.premioB||p.premio;break}}
+  }else if(modo==='normal'){
+    const r=Math.random()*100;
+    for(const p of PREMIOS){acc+=p.prob;if(r<acc){g=p;break}}
+  }
   let rod,cod=null,vto=null;
   if(g){
     rod=[g.simbolo,g.simbolo,g.simbolo];
@@ -970,7 +976,7 @@ function demoSorteo(db){
   }else{
     rod=[rnd(),rnd(),rnd()];if(rod[0]===rod[1]&&rod[1]===rod[2])rod[2]=SYMS[(SYMS.indexOf(rod[2])+1)%SYMS.length];
   }
-  return{simbolo:g&&g.simbolo,premio:g&&g.premio,rodillos:rod,codigo:cod,vence:vto};
+  return{simbolo:g&&g.simbolo,premio:g&&(nom||g.premio),rodillos:rod,codigo:cod,vence:vto};
 }
 function demoEstado(codigo,tel){
   const db=demoDb(), j=db.jugadas.find(x=>x.codigo===codigo&&x.telefono===normTel(tel));
@@ -979,7 +985,7 @@ function demoEstado(codigo,tel){
 }
 function demoVisita(sec,ori){
   const db=demoDb();
-  if(!db.visitantes[sec])db.visitantes[sec]={id:Object.keys(db.visitantes).length+1,tiros:DEMO.bienvenida,telefono:null,origen:ori||'',creado:new Date().toISOString()};
+  if(!db.visitantes[sec])db.visitantes[sec]={id:Object.keys(db.visitantes).length+1,tiros:DEMO.bienvenida,telefono:null,origen:ori||'',creado:new Date().toISOString(),tiroPremio:1+Math.floor(Math.random()*DEMO.bienvenida)};
   store.set('demo_db',db);
   const v=db.visitantes[sec];
   return{estado:'ok',tiros:v.tiros,registrado:!!v.telefono,pendientes:db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono&&x.codigo).length};
@@ -989,7 +995,10 @@ function demoTirarVisita(sec){
   if(!v)return{estado:'sesion'};
   if(v.telefono)return{estado:'registrado'};
   if(v.tiros<=0)return{estado:'sin_tiros'};
-  const s=demoSorteo(db);
+  // Premio seguro: gana exactamente uno de los tiros de regalo (el que tocó al azar)
+  const mias=db.jugadas.filter(x=>x.visitante===v.id), k=mias.length+1;
+  const modo=mias.some(x=>x.codigo)?'nada':(k>=(v.tiroPremio||DEMO.bienvenida)||v.tiros===1)?'bienvenida':'nada';
+  const s=demoSorteo(db,modo);
   db.jugadas.push({id:db.jugadas.length+1,telefono:null,visitante:v.id,creado:new Date().toISOString(),dia:demoHoy(),rodillos:s.rodillos,simbolo:s.simbolo,premio:s.premio,codigo:s.codigo,vence:s.vence,canjeado:null,canjeado_por:null,origen:v.origen,canal:'bienvenida'});
   v.tiros--;store.set('demo_db',db);
   return{estado:'ok',rodillos:s.rodillos,simbolo:s.simbolo,premio:s.premio,vence:s.vence,tiros:v.tiros,oculto:!!s.codigo};
