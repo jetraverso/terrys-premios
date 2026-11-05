@@ -84,7 +84,7 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .saldo{margin-top:12px;display:grid;gap:6px;justify-items:center;text-align:center}
 .saldo .tiros{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:20px;letter-spacing:.05em;line-height:1}
 .saldo .tiros .n{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:3px 7px 0;border-radius:8px;background:var(--ink);color:var(--paper);font-size:23px}
-.saldo:not([hidden])~.hint{display:none}
+
 .saldo .bono{width:100%;max-width:340px;font-size:13px;color:var(--ink-2)}
 .saldo .bono b{color:var(--ink)}
 .barra{display:flex;gap:4px;margin-top:6px}
@@ -243,7 +243,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <button class="spin" id="spin" type="button">¡Girar!</button>
   </div>
   <div class="saldo" id="saldo" hidden></div>
-  <p class="hint" id="hint">3 tiros de regalo para empezar · 3 más con cada ticket de compra.</p>
+  <p class="hint" id="hint">3 tiros gratis con la compra de cada pedido.</p>
   <div class="who-line" id="whoLine" hidden></div>
   <div id="pendBox"></div>
   <p class="sr" aria-live="polite" id="live"></p>
@@ -261,7 +261,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   </table>
   <ul class="reglas">
     <li><b>La primera vez, 3 tiros de regalo</b>, sin registrarte. Si ganas, te registras para guardar tu premio.</li>
-    <li><b>3 tiros por cada ticket de compra</b> (Glovo, take away o en el local): pones el número y la fecha del ticket.</li>
+    <li><b>3 tiros por cada pedido:</b> pones el número de ticket y la fecha, y se suman a tu saldo.</li>
     <li><b>Bonos:</b> cada 5 tickets te regalamos tiros extra. +3 en el 5º, +6 en el 10º, +3 en el 15º, +6 en el 20º… y así.</li>
     <li>Los descuentos son para tu próxima compra en el local, uno por compra.</li>
     <li>El premio se canjea <b>solo en el local</b>, enseñando el código en caja.</li>
@@ -805,7 +805,9 @@ async function tirarVisita(){
       const l=ocultos();l.push({premio:r.premio,simbolo:r.simbolo});store.set('ocultos',l);pintarSaldo();pintarPendiente();
       festejar();
       setTimeout(()=>mostrarPremioOculto({premio:r.premio,simbolo:r.simbolo},r.tiros),1100);
-    }else setTimeout(()=>mostrarNada(r,r.rodillos),900);
+    }
+    // Sin premio: no se muestra ningún cartel. El botón queda listo para el próximo tiro
+    // y los que no use quedan guardados.
     return;
   }
   pintarSaldo();
@@ -826,7 +828,8 @@ async function tirar(){
       const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:jugador&&jugador.nombre,telefono:sesion.telefono};
       guardarPremio(p);festejar();
       setTimeout(()=>mostrarPremio(p,true),1100);
-    }else setTimeout(()=>mostrarNada(r,r.rodillos),900);
+    }
+    // Sin premio: sin cartel (ver tirarVisita)
     return;
   }
   pintarSaldo();
