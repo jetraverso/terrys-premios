@@ -371,7 +371,7 @@ function pintarTab(){
 const esPendiente=x=>x.codigo&&x.telefono&&!x.canjeado&&x.vence>=hoyISO();   // sin teléfono = ganado sin registrarse todavía
 // De dónde vino la jugada: ticket (con su verificación en Ágora), bienvenida (folleto) o pedido de Glovo (antes)
 function verifTxt(t){
-  if(!t)return'';
+  if(!t||!t.verif||t.verif==='manual')return'';   // sin cruce con Ágora: se controla a mano
   if(t.verif==='ok')return`<span class="pill si" title="Está en Ágora">✓ Ágora${t.importe!=null?' · '+Number(t.importe).toFixed(2).replace('.',',')+' €':''}${t.canal?' · '+esc(t.canal):''}</span>`;
   if(t.verif==='no')return'<span class="pill ven" title="Ese día ya está cargado y el ticket no aparece">✗ No está en Ágora</span>';
   return`<span class="pill gan" title="Ágora sube las ventas cada noche">⏳ ${t.fecha_ticket>=hoyISO()?'Se verifica mañana':'Pendiente de Ágora'}</span>`;

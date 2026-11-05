@@ -21,10 +21,8 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 - **El resultado lo decide Supabase, no el navegador.** La página solo anima los rodillos hasta donde le dice el servidor, así nadie puede hacer trampa tocando el código de la página.
 - **Primero se juega, después se registra.** Quien escanea por primera vez (folleto `?o=folleto` o flyer de la bolsa) tiene **3 tiros de regalo con premio seguro**, una vez por móvil, sin poner ningún dato: **exactamente uno** de los 3 tiros gana (cuál, al azar) y los otros dos no. El premio de bienvenida sale con su propio reparto: **2x1 en cerveza 50 %, 5 % de descuento 25 %, 10 % de descuento 20 %, una burger 5 %** (`prob_bienvenida` y `premio_bienvenida` en `premios_catalogo`). Ve qué ganó pero **el código recién aparece cuando se registra**: así ganar es lo que lo lleva a dejar sus datos. Cada número de teléfono cobra premios de bienvenida **una sola vez**: si alguien juega en otro móvil y se registra con un número que ya los cobró, lo de ese móvil no cuenta.
 - **Tickets de compra:** para seguir jugando, el cliente (ya registrado) pone el **número y la fecha de su ticket** de Ágora. Cada ticket suma **3 tiros** y vale una sola vez. Se acepta hasta 7 días atrás (`dias_ticket`).
-- **Verificación con Ágora:** los tickets se comparan con las ventas que Ágora sube cada noche a la base (tabla `ventas_dias` de Administración):
-  - si ese día ya está cargado, el número **tiene que existir ese día**: si no, se rechaza ("no coincide con una compra de esa fecha");
-  - si el día todavía no se cargó (hoy, ayer), se acepta solo si el número es **creíble**: posterior al último ticket conocido y no disparatado. Queda "pendiente" y caja lo verifica cuando Ágora sube el día;
-  - en caja cada premio muestra de dónde vino: **✓ Ágora** (con importe y si fue Glovo, take away o local), **⏳ se verifica mañana**, **✗ no está en Ágora** (revisarlo antes de entregar) o **Bienvenida**.
+- **Control de tickets, a mano:** el ticket se acepta con cualquier número y una fecha de los últimos 7 días, y cada ticket vale una sola vez. En caja, cada premio muestra de qué ticket vino (número y fecha), para buscarlo en Ágora antes de entregarlo.
+  - Está preparado (y apagado) el **cruce automático con Ágora** (`verificar_agora` en `premios_config`): si se activa, el ticket tiene que existir en las ventas que Ágora sube cada noche (`ventas_dias`) y en caja aparece ✓ Ágora / ⏳ pendiente / ✗ no está en Ágora. Antes de activarlo hay que confirmar que el número que figura en el ticket impreso es el mismo que guarda Ágora.
 - **Saldo de tiros por cliente (por móvil):** cada giro gasta uno y los que no usa quedan guardados. En la página ve cuántos le quedan y cuánto le falta para el próximo bono.
 - **Bonos por fidelidad:** se cuentan los tickets de cada cliente. Al **5º ticket +3 tiros**, al **10º +6**, y se repite: 15º +3, 20º +6, 25º +3… (se cambia en `premios_config`).
 - **La llave del móvil:** al registrarse, la base le da al móvil una llave secreta y solo con esa llave se pueden gastar sus tiros o sumar tickets. Si alguien pone el móvil de otra persona con otro nombre, se rechaza.
@@ -128,6 +126,7 @@ Todo en Supabase → **Table Editor**:
   - `tiros_bienvenida` — tiros de regalo la primera vez, una vez por móvil (3).
   - `tiros_por_pedido` — tiros que suma cada ticket (3).
   - `dias_ticket` — antigüedad máxima del ticket que se acepta (7 días).
+  - `verificar_agora` — `false` (como está): los tickets se controlan a mano en caja. `true`: tienen que coincidir con las ventas de Ágora.
   - `bono_cada_5` — tiros de regalo en los tickets 5, 15, 25… (3).
   - `bono_cada_10` — tiros de regalo en los tickets 10, 20, 30… (6).
   - `max_pedidos_dia` — tickets que puede registrar un móvil por día (3). `0` = sin tope.

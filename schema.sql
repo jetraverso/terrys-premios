@@ -22,6 +22,7 @@ alter table public.premios_config add column if not exists bono_cada_5      int 
 alter table public.premios_config add column if not exists bono_cada_10     int not null default 6;  -- tiros extra en los pedidos 10, 20, 30…
 alter table public.premios_config add column if not exists tiros_bienvenida int not null default 3;  -- tiros de regalo la primera vez (folleto), una vez por móvil
 alter table public.premios_config add column if not exists dias_ticket      int not null default 7;  -- antigüedad máxima del ticket que se acepta (días)
+alter table public.premios_config add column if not exists verificar_agora  boolean not null default false;  -- true = el ticket tiene que coincidir con las ventas de Ágora; false = se acepta y se controla a mano en caja
 alter table public.premios_config alter column max_jugadas_dia set default 0;
 comment on column public.premios_config.max_jugadas_dia is 'Tope de tiros por móvil y por día (0 = sin tope)';
 insert into public.premios_config (id) values (1) on conflict (id) do nothing;
@@ -663,9 +664,14 @@ begin
     return jsonb_build_object('estado', 'tope_dia');
   end if;
 
-  ag := public.premios_agora_ticket(num, p_fecha);
-  if ag ->> 'estado' in ('no', 'no_creible') then
-    return jsonb_build_object('estado', 'ticket_no_coincide');
+  -- Cruce con Ágora: solo si está activado. Si no, se acepta y se controla a mano en caja.
+  if cfg.verificar_agora then
+    ag := public.premios_agora_ticket(num, p_fecha);
+    if ag ->> 'estado' in ('no', 'no_creible') then
+      return jsonb_build_object('estado', 'ticket_no_coincide');
+    end if;
+  else
+    ag := jsonb_build_object('estado', 'manual');
   end if;
 
   update premios_jugadores set pedidos = pedidos + 1 where telefono = tel returning * into jug;
@@ -673,14 +679,14 @@ begin
   update premios_jugadores set tiros = tiros + cfg.tiros_por_pedido + bono where telefono = tel returning * into jug;
   insert into premios_pedidos (telefono, ticket, fecha_ticket, anio, dia, tiros, bono, verif, importe, canal, verificado)
   values (tel, num, p_fecha, extract(year from p_fecha)::int, hoy, cfg.tiros_por_pedido + bono, bono,
-          case when ag ->> 'estado' = 'ok' then 'ok' else 'pendiente' end,
+          case when ag ->> 'estado' = 'ok' then 'ok' when ag ->> 'estado' = 'manual' then 'manual' else 'pendiente' end,
           (ag ->> 'importe')::numeric, ag ->> 'canal', case when ag ->> 'estado' = 'ok' then now() end);
 
   return jsonb_build_object('estado', 'ok', 'tiros', jug.tiros, 'pedidos', jug.pedidos,
     'sumados', cfg.tiros_por_pedido, 'bono', bono, 'proximo', public.premios_proximo_bono(jug.pedidos, cfg));
 end $$;
 
--- Caja: vuelve a mirar en Ágora los tickets que quedaron pendientes
+-- Caja: vuelve a mirar en Ágora los tickets que quedaron pendientes (solo si verificar_agora está activado)
 create or replace function public.premios_verificar_tickets()
 returns int language plpgsql volatile security definer set search_path = public as $$
 declare
@@ -689,6 +695,7 @@ declare
   n  int := 0;
 begin
   if not public.premios_es_staff() then raise exception 'Sin permiso'; end if;
+  if not coalesce((select verificar_agora from premios_config where id = 1), false) then return 0; end if;
   for p in select id, ticket, fecha_ticket from premios_pedidos where ticket is not null and verif = 'pendiente' loop
     ag := public.premios_agora_ticket(p.ticket, p.fecha_ticket);
     if ag ->> 'estado' in ('ok', 'no') then
