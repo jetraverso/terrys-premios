@@ -1,6 +1,6 @@
 # Terry's Premios
 
-La ruleta del QR del flyer. El cliente escanea, pone el **número de su pedido de Glovo**, nombre y móvil, y suma **3 tiros por pedido** (más bonos cada 5 pedidos). Gira una tragaperras de 3 rodillos con los personajes de Terry's y si salen **3 iguales** gana un premio con un código (`T-K7P3Q`) para canjear **en el local**: burgers, menú, cañas o descuentos del 10 % y del 5 %. Cada jugada queda guardada en Supabase, así se va armando la base de clientes.
+La ruleta del QR de los folletos. La primera vez el cliente juega **3 tiros de regalo sin registrarse**; si gana, se registra (nombre y móvil) para ver su código. Para seguir jugando, cada **ticket de compra** (número y fecha, de Glovo, take away o el local) suma **3 tiros** (más bonos cada 5 tickets). Gira una tragaperras de 3 rodillos con los personajes de Terry's y si salen **3 iguales** gana un premio con un código (`T-K7P3Q`) para canjear **en el local**: burgers, menú, cañas o descuentos del 10 % y del 5 %. Cada jugada queda guardada en Supabase, así se va armando la base de clientes.
 
 Publicada en GitHub Pages:
 
@@ -17,11 +17,16 @@ La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes
 ## Cómo funciona
 
 - **El resultado lo decide Supabase, no el navegador.** La página solo anima los rodillos hasta donde le dice el servidor, así nadie puede hacer trampa tocando el código de la página.
-- **Saldo de tiros por cliente (por móvil).** Cada pedido de Glovo registrado suma **3 tiros**, y cada giro gasta uno. Los tiros que no usa le quedan guardados para cuando quiera. En la página ve cuántos le quedan y cuánto le falta para el próximo bono.
-- **Bonos por fidelidad:** se cuentan los pedidos de cada móvil. Al **5º pedido +3 tiros**, al **10º +6**, y se repite: 15º +3, 20º +6, 25º +3… (se cambia en `premios_config`).
-- **El número de pedido:** en Glovo son **# y 3 números**. El `#` ya está puesto, así que el cliente solo escribe los 3 números. Como Glovo repite esos números, **cada número vale una vez por día** (a la hora de España). Si alguien pone un número que ya se usó ese día, le avisa; si es el mismo cliente (mismo móvil y nombre), recupera sus tiros en ese móvil.
-- **La llave del móvil:** al registrar un pedido, la base le da al móvil una llave secreta y solo con esa llave se pueden gastar sus tiros. Así nadie puede usar los tiros de otro sabiendo su número de teléfono.
-- **Freno a pedidos inventados:** como el número no se puede comprobar contra Glovo, un mismo móvil puede registrar como mucho **3 pedidos por día** (`max_pedidos_dia`). En caja se ve el número de pedido y el día de cada premio, así se puede comparar con los pedidos de Glovo de ese día antes de entregarlo.
+- **Primero se juega, después se registra.** Quien escanea por primera vez (folleto `?o=folleto` o flyer de la bolsa) tiene **3 tiros de regalo**, una vez por móvil, sin poner ningún dato. Si gana, ve qué ganó pero **el código recién aparece cuando se registra**: así ganar es lo que lo lleva a dejar sus datos. Cada número de teléfono cobra premios de bienvenida **una sola vez**: si alguien juega en otro móvil y se registra con un número que ya los cobró, lo de ese móvil no cuenta.
+- **Tickets de compra:** para seguir jugando, el cliente (ya registrado) pone el **número y la fecha de su ticket** de Ágora. Cada ticket suma **3 tiros** y vale una sola vez. Se acepta hasta 7 días atrás (`dias_ticket`).
+- **Verificación con Ágora:** los tickets se comparan con las ventas que Ágora sube cada noche a la base (tabla `ventas_dias` de Administración):
+  - si ese día ya está cargado, el número **tiene que existir ese día**: si no, se rechaza ("no coincide con una compra de esa fecha");
+  - si el día todavía no se cargó (hoy, ayer), se acepta solo si el número es **creíble**: posterior al último ticket conocido y no disparatado. Queda "pendiente" y caja lo verifica cuando Ágora sube el día;
+  - en caja cada premio muestra de dónde vino: **✓ Ágora** (con importe y si fue Glovo, take away o local), **⏳ se verifica mañana**, **✗ no está en Ágora** (revisarlo antes de entregar) o **Bienvenida**.
+- **Saldo de tiros por cliente (por móvil):** cada giro gasta uno y los que no usa quedan guardados. En la página ve cuántos le quedan y cuánto le falta para el próximo bono.
+- **Bonos por fidelidad:** se cuentan los tickets de cada cliente. Al **5º ticket +3 tiros**, al **10º +6**, y se repite: 15º +3, 20º +6, 25º +3… (se cambia en `premios_config`).
+- **La llave del móvil:** al registrarse, la base le da al móvil una llave secreta y solo con esa llave se pueden gastar sus tiros o sumar tickets. Si alguien pone el móvil de otra persona con otro nombre, se rechaza.
+- **Freno a abusos:** como máximo **3 tickets por móvil y por día** (`max_pedidos_dia`). Los pedidos de Glovo con el # de 3 números (versión anterior) siguen apareciendo en caja como "#123 Glovo".
 - **El móvil** se guarda siempre igual (`600 11 12 22`, `+34600111222` y `0034600111222` son la misma persona) y en ese móvil la página recuerda los datos: la próxima vez solo hay que poner el pedido nuevo.
 - **Premios y chances** (se cambian en Supabase, ver abajo):
 
@@ -98,9 +103,14 @@ Repositorio: https://github.com/jetraverso/terrys-premios (GitHub Pages desde la
 
 ### 5. Flyer de las bolsas
 
-En [`flyer/`](flyer/): **`terrys-flyer-A6.pdf`** para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `…/terrys-premios/?o=flyer`, así en caja se ve quién vino por el flyer.
+En [`flyer/`](flyer/) hay dos, en A6:
 
-Para cambiarlo: se edita `flyer/flyer.html` (abriéndolo en el navegador se ve la hoja en grande) y se corre `flyer/exportar.sh`, que vuelve a generar el PDF y el PNG con Chrome. Antes de imprimir muchos, probá el QR impreso con un par de móviles.
+- **Folleto para repartir** (`terrys-folleto-A6.pdf` / `.png`): "3 tiros gratis, sin registrarte". QR a `…/terrys-premios/?o=folleto`.
+- **Flyer de las bolsas** (`terrys-flyer-A6.pdf` / `.png`): "Pon tu ticket, número y fecha". QR a `…/terrys-premios/?o=flyer`.
+
+Cada uno: el PDF para imprenta (A6, 10,5 × 14,8 cm, sin sangrado: los bordes son blancos) y **`terrys-flyer-A6.png`** (300 ppp) para mandar por WhatsApp o redes. El QR va a `…/terrys-premios/?o=flyer`, así en caja se ve quién vino por el flyer.
+
+Para cambiarlos: se edita `flyer/folleto.html` o `flyer/flyer.html` (abriéndolo en el navegador se ve la hoja en grande) y se corre `flyer/exportar.sh`, que vuelve a generar el PDF y el PNG con Chrome. Antes de imprimir muchos, probá el QR impreso con un par de móviles.
 
 ## Cambiar cosas
 
@@ -109,10 +119,12 @@ Todo en Supabase → **Table Editor**:
 - **`premios_catalogo`** — un renglón por personaje: `simbolo` (el nombre de su imagen en `img/`), `premio` y `probabilidad` (en %). Lo que falte para 100 es "sin premio". Con probabilidad 0 sigue saliendo en los rodillos pero nunca da premio. *Si cambiás un premio o agregás un personaje, cambialo también en la lista `PREMIOS` de `index.html` (es lo que muestra la página); un personaje nuevo necesita su imagen en `img/` (cuadrada, fondo transparente, `.webp`).*
 - **`premios_config`**:
   - `activo` — `false` apaga la ruleta ("La ruleta está en pausa").
-  - `tiros_por_pedido` — tiros que suma cada pedido (3).
-  - `bono_cada_5` — tiros de regalo en los pedidos 5, 15, 25… (3).
-  - `bono_cada_10` — tiros de regalo en los pedidos 10, 20, 30… (6).
-  - `max_pedidos_dia` — pedidos que puede registrar un móvil por día (3). `0` = sin tope.
+  - `tiros_bienvenida` — tiros de regalo la primera vez, una vez por móvil (3).
+  - `tiros_por_pedido` — tiros que suma cada ticket (3).
+  - `dias_ticket` — antigüedad máxima del ticket que se acepta (7 días).
+  - `bono_cada_5` — tiros de regalo en los tickets 5, 15, 25… (3).
+  - `bono_cada_10` — tiros de regalo en los tickets 10, 20, 30… (6).
+  - `max_pedidos_dia` — tickets que puede registrar un móvil por día (3). `0` = sin tope.
   - `max_jugadas_dia` — tope de tiros por móvil y por día (0 = sin tope; los tiros que sobran quedan para otro día).
   - `dias_entre_jugadas` — ya no se usa.
   - `dias_validez` — cuántos días dura un premio (30). Vale para los premios nuevos.

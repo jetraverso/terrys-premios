@@ -148,20 +148,25 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · datos de este navegador</div>');
 
 // ---------- Datos ----------
-const demoDb=()=>{try{return JSON.parse(localStorage.getItem('tp_demo_db'))||{jugadores:{},jugadas:[]}}catch{return{jugadores:{},jugadas:[]}}};
+const demoDb=()=>{try{return JSON.parse(localStorage.getItem('tp_demo_db'))||{jugadores:{},jugadas:[],pedidos:[]}}catch{return{jugadores:{},jugadas:[],pedidos:[]}}};
 const demoSave=db=>{try{localStorage.setItem('tp_demo_db',JSON.stringify(db))}catch{}};
-let email='', J=[], P=[], tab='pendientes';
+let email='', J=[], P=[], T={}, tab='pendientes';
 
 async function cargar(){
-  if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));}
+  let tks=[];
+  if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));tks=db.pedidos||[];}
   else{
-    const [a,b]=await Promise.all([
+    // Primero se vuelven a mirar en Ágora los tickets pendientes (los días que ya se cargaron)
+    try{await sbc.rpc('premios_verificar_tickets')}catch(e){}
+    const [a,b,c]=await Promise.all([
       sbc.from('premios_jugadores').select('telefono,nombre,email,acepta_promos,origen,pedidos,tiros,jugadas,premios,primera_jugada,ultima_jugada').order('ultima_jugada',{ascending:false,nullsFirst:false}).limit(10000),
       sbc.from('premios_jugadas').select('*,premios_jugadores(nombre)').order('creado',{ascending:false}).limit(3000),
+      sbc.from('premios_pedidos').select('telefono,pedido,ticket,fecha_ticket,dia,verif,importe,canal,creado').not('ticket','is',null).order('creado',{ascending:false}).limit(5000),
     ]);
     if(a.error||b.error){toast('No se pudo cargar: '+(a.error||b.error).message);return}
-    J=a.data;P=b.data.map(x=>({...x,nombre:x.premios_jugadores&&x.premios_jugadores.nombre}));
+    J=a.data;P=b.data.map(x=>({...x,nombre:x.premios_jugadores&&x.premios_jugadores.nombre}));tks=c.error?[]:c.data;
   }
+  T={};tks.forEach(t=>{if(t.ticket!=null)T[t.telefono+'|'+t.ticket]=t});
   P.sort((a,b)=>b.creado.localeCompare(a.creado));
   J.sort((a,b)=>String(b.ultima_jugada||'').localeCompare(String(a.ultima_jugada||'')));
   pintarResumen();pintarTab();
@@ -262,17 +267,18 @@ async function verCodigo(raw,msg){
   $('#ci').value=cod;
   let j;try{j=await buscarCodigo(cod)}catch(err){box.innerHTML=`<div class="nf">No se pudo buscar: ${esc(err.message)}</div>`;return}
   if(!j){box.innerHTML=`<div class="nf">No existe ningún premio con el código <b>${esc(cod)}</b>. Revisá que esté bien escrito.</div>`;return}
-  const vencido=!j.canjeado&&j.vence<hoyISO();
-  const cls=j.canjeado?'usado':vencido?'vencido':'valido';
-  const st=j.canjeado?`Ya canjeado el ${fHora(j.canjeado)}`:vencido?`Vencido el ${fFecha(j.vence)}`:'Válido ✓';
+  const vencido=!j.canjeado&&j.vence<hoyISO(), sinReg=!j.telefono;
+  const cls=j.canjeado?'usado':(vencido||sinReg)?'vencido':'valido';
+  const st=j.canjeado?`Ya canjeado el ${fHora(j.canjeado)}`:sinReg?'Sin registrar: el cliente todavía no se registró':vencido?`Vencido el ${fFecha(j.vence)}`:'Válido ✓';
+  const tk=j.ticket!=null&&T[j.telefono+'|'+j.ticket];
   const recien=j.canjeado&&(Date.now()-new Date(j.canjeado))<12*3600e3;
   box.innerHTML=`<div class="tk ${cls}">
     <div class="st">${esc(msg||st)}</div>
     <div class="prem">${esc(j.premio)}</div>
     <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
     <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
-    <dt>Móvil</dt><dd>··· ${esc(String(j.telefono).slice(-3))} <span style="color:var(--muted);font-weight:400">(pedile que te diga los últimos 3)</span></dd>
-    <dt>Pedido Glovo</dt><dd>${j.pedido?`<span class="code" style="font-size:16px">#${esc(j.pedido)}</span> · del ${esc(fFecha(j.dia||j.creado))}`:'—'}</dd>
+    <dt>Móvil</dt><dd>${j.telefono?`··· ${esc(String(j.telefono).slice(-3))} <span style="color:var(--muted);font-weight:400">(pedile que te diga los últimos 3)</span>`:'—'}</dd>
+    <dt>Origen</dt><dd>${origenTxt(j)}${tk&&tk.verif==='no'?'<div style="color:var(--danger);font-weight:600;margin-top:4px">Ojo: ese ticket no aparece en Ágora. Revisalo antes de entregar.</div>':''}</dd>
     <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
     <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
     ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
@@ -300,7 +306,7 @@ async function verCodigo(raw,msg){
 function pintarResumen(){
   const hoy=hoyISO(), dia=x=>new Date(x).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
   const hace7=new Date(Date.now()-7*864e5).toISOString();
-  const gan=P.filter(x=>x.codigo), can=gan.filter(x=>x.canjeado), pend=gan.filter(x=>!x.canjeado&&x.vence>=hoy);
+  const gan=P.filter(x=>x.codigo), can=gan.filter(x=>x.canjeado), pend=gan.filter(esPendiente);
   const promos=J.filter(x=>x.acepta_promos).length;
   const c=(k,v,s)=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
   $('#cards').innerHTML=
@@ -317,11 +323,27 @@ function pintarTab(){
   if(c){c.textContent=n||'';c.hidden=!n}
   ({pendientes:tabPendientes,canjeados:tabCanjeados,jugadores:tabJugadores,jugadas:tabJugadas,qr:tabQr})[tab]();
 }
-const esPendiente=x=>x.codigo&&!x.canjeado&&x.vence>=hoyISO();
-const pedidoTxt=x=>x.pedido?`#${esc(x.pedido)}`:'—';
+const esPendiente=x=>x.codigo&&x.telefono&&!x.canjeado&&x.vence>=hoyISO();   // sin teléfono = ganado sin registrarse todavía
+// De dónde vino la jugada: ticket (con su verificación en Ágora), bienvenida (folleto) o pedido de Glovo (antes)
+function verifTxt(t){
+  if(!t)return'';
+  if(t.verif==='ok')return`<span class="pill si" title="Está en Ágora">✓ Ágora${t.importe!=null?' · '+Number(t.importe).toFixed(2).replace('.',',')+' €':''}${t.canal?' · '+esc(t.canal):''}</span>`;
+  if(t.verif==='no')return'<span class="pill ven" title="Ese día ya está cargado y el ticket no aparece">✗ No está en Ágora</span>';
+  return`<span class="pill gan" title="Ágora sube las ventas cada noche">⏳ ${t.fecha_ticket>=hoyISO()?'Se verifica mañana':'Pendiente de Ágora'}</span>`;
+}
+function origenTxt(x,corto){
+  if(x.ticket!=null){
+    const t=T[x.telefono+'|'+x.ticket];
+    return`<span class="code">Ticket ${esc(x.ticket)}</span>${t&&t.fecha_ticket?` <span class="sub">${fFecha(t.fecha_ticket).slice(0,5)}</span>`:''}${corto?'':' '+verifTxt(t)}`;
+  }
+  if(x.pedido)return`<span class="code">#${esc(x.pedido)}</span> <span class="sub">Glovo ${fFecha(x.dia||x.creado).slice(0,5)}</span>`;
+  return'<span class="pill no">Bienvenida</span>';
+}
+const origenPlano=x=>x.ticket!=null?`Ticket ${x.ticket}${(T[x.telefono+'|'+x.ticket]||{}).verif==='ok'?' (verificado en Ágora)':(T[x.telefono+'|'+x.ticket]||{}).verif==='no'?' (NO está en Ágora)':''}`:x.pedido?'#'+x.pedido+' (Glovo)':'Bienvenida (folleto)';
+const pedidoTxt=x=>origenTxt(x);
 const quien=x=>`${esc(x.nombre||'')} <span class="sub">··· ${esc(String(x.telefono||'').slice(-3))}</span>`;
 async function canjearFila(x,btn){
-  if(!confirm(`¿Entregar "${x.premio}" a ${x.nombre}?\n\nPedido Glovo ${x.pedido?'#'+x.pedido:'—'} · código ${x.codigo}\n\nQueda marcado como canjeado.`))return;
+  if(!confirm(`¿Entregar "${x.premio}" a ${x.nombre}?\n\n${origenPlano(x)} · código ${x.codigo}\n\nQueda marcado como canjeado.`))return;
   if(btn)btn.disabled=true;
   let r;try{r=await canjear(x.codigo)}catch(err){toast('Error: '+err.message);if(btn)btn.disabled=false;return}
   toast({ok:`Canjeado ✓ ${x.premio}`,ya_canjeado:'Ojo: ya estaba canjeado',vencido:'Vencido: no se puede canjear',no_existe:'No existe'}[r.estado]||r.estado);
@@ -351,7 +373,7 @@ function csv(nombre,rows){
 }
 function buscador(ph){return`<input type="search" id="q" placeholder="${ph}">`}
 const coincide=(x,q)=>{if(!q)return true;const d=q.replace(/\D/g,'');
-  return String(x.nombre||'').toLowerCase().includes(q.toLowerCase())||String(x.codigo||'').toLowerCase().includes(q.toLowerCase())||(d&&String(x.pedido||'').includes(d))};
+  return String(x.nombre||'').toLowerCase().includes(q.toLowerCase())||String(x.codigo||'').toLowerCase().includes(q.toLowerCase())||(d&&(String(x.pedido||'').includes(d)||String(x.ticket??'').includes(d)))};
 
 function tabPendientes(){
   $('#panel').innerHTML=`<div class="bar">${buscador('Buscar pedido, nombre o código')}<span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
@@ -360,8 +382,8 @@ function tabPendientes(){
     const L=P.filter(esPendiente).filter(x=>coincide(x,q)).sort((a,b)=>a.vence.localeCompare(b.vence));
     const venc=P.filter(x=>x.codigo&&!x.canjeado&&x.vence<hoyISO()).length;
     $('#n').textContent=`${L.length} por canjear${venc?` · ${venc} vencidos`:''}`;
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Vence</th><th></th></tr></thead><tbody>${
-      L.map((x,i)=>`<tr><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td><b>${esc(x.premio)}</b></td>
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Origen</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Vence</th><th></th></tr></thead><tbody>${
+      L.map((x,i)=>`<tr><td>${origenTxt(x)}</td><td>${quien(x)}</td><td><b>${esc(x.premio)}</b></td>
         <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${fFecha(x.vence)}</td>
         <td class="act"><button class="btn ok mini" data-i="${i}">Canjear</button></td></tr>`).join('')
     }</tbody></table>`:'<div class="empty">No hay premios por canjear.</div>';
@@ -400,8 +422,8 @@ function tabCanjeados(){
     $('#n').textContent=`${L.length} canjeados · ${delMes} este mes`;
     porDia($('#tw'),'canjeados',L,{
       fecha:x=>x.canjeado, todoAbierto:!!q,
-      cab:'<th>Hora</th><th>Pedido</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th>',
-      fila:(x,i)=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td class="code">${pedidoTxt(x)} <span class="sub">${fFecha(x.dia||x.creado).slice(0,5)}</span></td><td>${quien(x)}</td><td>${esc(x.premio)}</td>
+      cab:'<th>Hora</th><th>Origen</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th>',
+      fila:(x,i)=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td>${origenTxt(x)}</td><td>${quien(x)}</td><td>${esc(x.premio)}</td>
         <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${esc(x.canjeado_por||'')}</td>
         <td class="act">${(Date.now()-new Date(x.canjeado))<12*3600e3?`<button class="btn sec mini" data-i="${i}">Deshacer</button>`:''}</td></tr>`,
       resumen:f=>f.length?`${f.length} ${f.length===1?'canjeado':'canjeados'}`:'',
@@ -410,8 +432,8 @@ function tabCanjeados(){
     document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>deshacerFila(L[b.dataset.i]));
   };
   $('#q').oninput=draw;
-  $('#csv').onclick=()=>csv('terrys-canjeados',[['Canjeado','Pedido','Dia pedido','Cliente','Movil','Premio','Codigo','Ganado','Lo entrego'],
-    ...L.map(x=>[fHora(x.canjeado),x.pedido?'#'+x.pedido:'',fFecha(x.dia||x.creado),x.nombre,x.telefono,x.premio,x.codigo,fHora(x.creado),x.canjeado_por||''])]);
+  $('#csv').onclick=()=>csv('terrys-canjeados',[['Canjeado','Origen','Dia jugada','Cliente','Movil','Premio','Codigo','Ganado','Lo entrego'],
+    ...L.map(x=>[fHora(x.canjeado),origenPlano(x),fFecha(x.dia||x.creado),x.nombre,x.telefono,x.premio,x.codigo,fHora(x.creado),x.canjeado_por||''])]);
   draw();
 }
 function tabJugadores(){
@@ -419,13 +441,13 @@ function tabJugadores(){
     <button class="btn sec" id="csv">Descargar CSV</button><span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
   const draw=()=>{
     const q=$('#q').value.trim().toLowerCase(), sp=$('#sp').checked;
-    const peds={};for(const x of P)if(x.pedido)(peds[x.telefono]=peds[x.telefono]||[]).push(x.pedido);
+    const peds={};for(const x of P){const n=x.ticket!=null?String(x.ticket):x.pedido;if(n)(peds[x.telefono]=peds[x.telefono]||[]).push(n)}
     const d=q.replace(/\D/g,'');
-    const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)||(d.length===3&&(peds[x.telefono]||[]).includes(d))));
+    const L=J.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)||(d.length>=3&&(peds[x.telefono]||[]).includes(d))));
     $('#n').textContent=`${L.length} de ${J.length}`;
-    const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;   // P va de más nueva a más vieja
-    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último pedido</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Pedidos</th><th class="num">Tiros</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th><th></th></tr></thead><tbody>${
-      L.slice(0,500).map((x,i)=>`<tr><td>${esc(x.nombre)}</td><td class="code">${ult[x.telefono]?pedidoTxt(ult[x.telefono])+` <span class="sub">${fFecha(ult[x.telefono].dia||ult[x.telefono].creado).slice(0,5)}</span>`:''}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
+    const ult={};for(const x of P)if((x.pedido||x.ticket!=null)&&!ult[x.telefono])ult[x.telefono]=x;   // P va de más nueva a más vieja
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último ticket</th><th>Móvil</th><th>Email</th><th>Promos</th><th class="num">Tickets</th><th class="num">Tiros</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th><th></th></tr></thead><tbody>${
+      L.slice(0,500).map((x,i)=>`<tr><td>${esc(x.nombre)}</td><td>${ult[x.telefono]?origenTxt(ult[x.telefono],true):''}</td><td><a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a></td><td>${esc(x.email||'')}</td>
         <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num"><b>${x.pedidos??0}</b></td><td class="num">${x.tiros??0}</td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td>
         <td class="act"><button class="tacho" type="button" data-b="${i}" title="Eliminar jugador" aria-label="Eliminar a ${esc(x.nombre)}">${TACHO}</button></td></tr>`).join('')
     }</tbody></table>`:'<div class="empty">Todavía no jugó nadie.</div>';
@@ -435,28 +457,28 @@ function tabJugadores(){
   $('#q').oninput=draw;$('#sp').onchange=draw;
   $('#csv').onclick=()=>{
     const L=draw();
-    const ult={};for(const x of P)if(x.pedido&&!ult[x.telefono])ult[x.telefono]=x;
-    const rows=[['Nombre','Ultimo pedido','Movil','Email','Acepta promos','Pedidos','Tiros sin usar','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
-      ...L.map(x=>[x.nombre,ult[x.telefono]?'#'+ult[x.telefono].pedido:'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.pedidos??0,x.tiros??0,x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
+    const ult={};for(const x of P)if((x.pedido||x.ticket!=null)&&!ult[x.telefono])ult[x.telefono]=x;
+    const rows=[['Nombre','Ultimo ticket','Movil','Email','Acepta promos','Pedidos','Tiros sin usar','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
+      ...L.map(x=>[x.nombre,ult[x.telefono]?origenPlano(ult[x.telefono]):'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.pedidos??0,x.tiros??0,x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])];
     const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`terrys-jugadores-${hoyISO()}.csv`;a.click();
   };
   draw();
 }
 function tabJugadas(){
-  $('#panel').innerHTML=`<div class="bar"><input type="search" id="qp" placeholder="Buscar pedido o nombre"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
+  $('#panel').innerHTML=`<div class="bar"><input type="search" id="qp" placeholder="Buscar ticket o nombre"><select id="f" style="padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line-2)">
     <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div id="tw"></div>`;
   const draw=()=>{
     const f=$('#f').value, hoy=hoyISO(), q=$('#qp').value.trim().toUpperCase();
-    const L=P.filter(x=>(!q||String(x.pedido||'').includes(q.replace(/[^A-Z0-9]/g,''))||String(x.nombre||'').toUpperCase().includes(q))).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
+    const L=P.filter(x=>(!q||String(x.pedido||'').includes(q.replace(/[^A-Z0-9]/g,''))||(q.replace(/\D/g,'')&&String(x.ticket??'').includes(q.replace(/\D/g,'')))||String(x.nombre||'').toUpperCase().includes(q))).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
     $('#n').textContent=`${L.length} jugadas`;
     const filtrando=!!(q||f);
     porDia($('#tw'),'jugadas',L,{
       fecha:x=>x.creado, todoAbierto:filtrando,
-      cab:'<th>Hora</th><th>Nombre</th><th>Pedido</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th>',
+      cab:'<th>Hora</th><th>Nombre</th><th>Ticket</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th>',
       fila:(x,i)=>{
         const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
-        return`<tr><td>${soloHora(x.creado)}</td><td>${esc(x.nombre||'')}</td><td class="code">${x.pedido?'#'+esc(x.pedido):''}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
+        return`<tr><td>${soloHora(x.creado)}</td><td>${x.telefono?esc(x.nombre||''):'<span class="sub">Sin registrar</span>'}</td><td>${origenTxt(x,true)}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span style="color:var(--muted)">Sin premio</span>'}</td>
           <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td>
           <td class="act">${esPendiente(x)?`<button class="btn ok mini" data-i="${i}">Canjear</button>`:''}</td></tr>`},
       resumen:fl=>{if(!fl.length)return'';const g=fl.filter(x=>x.codigo).length;return`${fl.length} ${fl.length===1?'jugada':'jugadas'} · ${g} con premio`},

@@ -125,6 +125,15 @@ h1 em{font-style:normal;background:var(--ink);color:var(--paper);padding:0 .18em
 .f .help{font-size:12px;color:var(--muted);margin-top:5px}
 .pedido-in{display:flex;align-items:center;width:100%;border:2px solid var(--ink);border-radius:12px;background:var(--paper);overflow:hidden}
 .pedido-in span{flex:none;align-self:stretch;display:grid;place-items:center;padding:0 14px;background:var(--ink);color:var(--paper);font-family:var(--display);font-size:32px;line-height:1}
+.dos{display:grid;grid-template-columns:1.25fr 1fr;gap:10px}
+.dos .f{margin-top:0}
+.f input.fecha{width:100%;padding:12px 10px;border-radius:12px;border:2px solid var(--ink);background:var(--paper);font-size:16px;min-height:52px}
+.f.bad input.fecha{border-width:3px;border-style:dashed}
+.sep{margin-top:16px;font-weight:700;font-size:15px}
+.f .pedido-in input#ticketNum,.f .pedido-in input#ticketNum::placeholder{letter-spacing:.06em}
+.f .pedido-in input#ticketNum{font-size:28px;padding-left:10px;padding-right:8px}
+#fTicket .pedido-in span{padding:0 10px;font-size:22px}
+#bloqueTicket .help{margin-top:6px;font-size:12px;color:var(--muted)}
 .f .pedido-in input[type=text]{width:100%;min-width:0;border:0;border-radius:0;padding:10px 14px;font-family:var(--display);font-size:32px;letter-spacing:.3em;line-height:1}
 .f .pedido-in input::placeholder{letter-spacing:.3em}
 .pedido-in:focus-within{outline:3px solid var(--ink);outline-offset:2px}
@@ -234,7 +243,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <button class="spin" id="spin" type="button">¡Girar!</button>
   </div>
   <div class="saldo" id="saldo" hidden></div>
-  <p class="hint" id="hint">3 tiros gratis con cada pedido de Glovo.</p>
+  <p class="hint" id="hint">3 tiros de regalo para empezar · 3 más con cada ticket de compra.</p>
   <div class="who-line" id="whoLine" hidden></div>
   <div id="pendBox"></div>
   <p class="sr" aria-live="polite" id="live"></p>
@@ -251,8 +260,9 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <tbody id="prizeList"></tbody>
   </table>
   <ul class="reglas">
-    <li><b>3 tiros por cada pedido de Glovo</b>: pones el número de pedido (# y 3 números) y se suman a tu saldo.</li>
-    <li><b>Bonos:</b> cada 5 pedidos te regalamos tiros extra. +3 en el 5º pedido, +6 en el 10º, +3 en el 15º, +6 en el 20º… y así.</li>
+    <li><b>La primera vez, 3 tiros de regalo</b>, sin registrarte. Si ganas, te registras para guardar tu premio.</li>
+    <li><b>3 tiros por cada ticket de compra</b> (Glovo, take away o en el local): pones el número y la fecha del ticket.</li>
+    <li><b>Bonos:</b> cada 5 tickets te regalamos tiros extra. +3 en el 5º, +6 en el 10º, +3 en el 15º, +6 en el 20º… y así.</li>
     <li>Los descuentos son para tu próxima compra en el local, uno por compra.</li>
     <li>El premio se canjea <b>solo en el local</b>, enseñando el código en caja.</li>
     <li id="rValidez">Válido 30 días desde que lo ganas. No se cambia por dinero.</li>
@@ -265,36 +275,48 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 <!-- Formulario -->
 <div class="sheet" id="formSheet" role="dialog" aria-modal="true" aria-labelledby="fTitle">
   <form class="card" id="form" novalidate>
-    <h3 id="fTitle">Registra tu pedido</h3>
-    <p class="sub" id="fSub">Cada pedido de Glovo te da <b>3 tiros</b>. Déjanos tus datos para guardarte los premios.</p>
-    <div class="f" id="fPedido">
-      <label for="pedido">Nº de pedido de Glovo</label>
-      <div class="pedido-in"><span aria-hidden="true">#</span><input type="text" id="pedido" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="123" aria-describedby="pedidoHelp" required></div>
-      <div class="help" id="pedidoHelp">Son los 3 números que van después del # en tu pedido de Glovo.</div>
-      <div class="err">Escribe los 3 números de tu pedido (lo que va después del #).</div>
-    </div>
-    <div class="f" id="fNombre">
-      <label for="nombre">Nombre</label>
-      <input type="text" id="nombre" autocomplete="given-name" maxlength="60" required>
-      <div class="err">Escribe tu nombre.</div>
-    </div>
-    <div class="f" id="fTel">
-      <label for="tel">Móvil <small>(para identificar tu premio)</small></label>
-      <div class="tel-in">
-        <label class="pais"><span id="paisVer" aria-hidden="true">🇪🇸 +34</span><select id="pais" aria-label="País del móvil"></select></label>
-        <input type="tel" id="tel" autocomplete="tel-national" inputmode="tel" placeholder="600 123 456" maxlength="20" required>
+    <h3 id="fTitle">Regístrate</h3>
+    <p class="sub" id="fSub"></p>
+    <div id="bloqueDatos">
+      <div class="f" id="fNombre">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" autocomplete="given-name" maxlength="60" required>
+        <div class="err" id="nombreErr">Escribe tu nombre.</div>
       </div>
-      <div class="err" id="telErr">Revisa el número: son 9 cifras, sin el +34.</div>
+      <div class="f" id="fTel">
+        <label for="tel">Móvil <small>(para identificar tus premios)</small></label>
+        <div class="tel-in">
+          <label class="pais"><span id="paisVer" aria-hidden="true">🇪🇸 +34</span><select id="pais" aria-label="País del móvil"></select></label>
+          <input type="tel" id="tel" autocomplete="tel-national" inputmode="tel" placeholder="600 123 456" maxlength="20" required>
+        </div>
+        <div class="err" id="telErr">Revisa el número: son 9 cifras, sin el +34.</div>
+      </div>
+      <div class="f" id="fMail">
+        <label for="email">Email <small>(opcional)</small></label>
+        <input type="email" id="email" autocomplete="email" inputmode="email" maxlength="120">
+        <div class="err">Ese email no parece válido.</div>
+      </div>
+      <label class="chk" id="cPriv"><input type="checkbox" id="priv"> <span>Tengo 14 años o más y acepto la <a href="#" id="verPriv">política de privacidad</a>.</span></label>
+      <label class="chk"><input type="checkbox" id="promos"> <span>Quiero recibir promociones de Terry's por WhatsApp o email (opcional).</span></label>
     </div>
-    <div class="f" id="fMail">
-      <label for="email">Email <small>(opcional)</small></label>
-      <input type="email" id="email" autocomplete="email" inputmode="email" maxlength="120">
-      <div class="err">Ese email no parece válido.</div>
+    <div id="bloqueTicket">
+      <p class="sep" id="sepTicket">Y para sumar 3 tiros, tu ticket de compra:</p>
+      <div class="dos">
+        <div class="f" id="fTicket">
+          <label for="ticketNum">Nº de ticket</label>
+          <div class="pedido-in"><span aria-hidden="true">Nº</span><input type="text" id="ticketNum" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="21345" maxlength="12"></div>
+          <div class="err">Escribe el número del ticket.</div>
+        </div>
+        <div class="f" id="fFecha">
+          <label for="ticketFecha">Fecha</label>
+          <input type="date" id="ticketFecha" class="fecha">
+          <div class="err" id="fechaErr">Tiene que ser de los últimos 7 días.</div>
+        </div>
+      </div>
+      <div class="help">Los dos están arriba en tu ticket: sirve el de Glovo, el de take away o el del local.</div>
     </div>
-    <label class="chk" id="cPriv"><input type="checkbox" id="priv"> <span>Tengo 14 años o más y acepto la <a href="#" id="verPriv">política de privacidad</a>.</span></label>
-    <label class="chk"><input type="checkbox" id="promos"> <span>Quiero recibir promociones de Terry's por WhatsApp o email (opcional).</span></label>
     <div class="formerr" id="formErr"></div>
-    <button class="btn" id="go" type="submit">Sumar mis tiros</button>
+    <button class="btn" id="go" type="submit">Guardar</button>
     <button class="btn ghost" type="button" data-close>Ahora no</button>
   </form>
 </div>
@@ -355,7 +377,7 @@ const PREMIOS=[
   {simbolo:'desc10',  personaje:'10%',     premio:'10% de descuento',         prob:8},
   {simbolo:'desc5',   personaje:'5%',      premio:'5% de descuento',          prob:18},
 ];
-const DEMO={validez:30, tirosPorPedido:3, maxPedidosDia:3, bono5:3, bono10:6};
+const DEMO={validez:30, tirosPorPedido:3, maxPedidosDia:3, bono5:3, bono10:6, bienvenida:3, diasTicket:7};
 // ------------------------------------------------------------------
 
 const SB=!!(SUPABASE_URL&&SUPABASE_KEY);
@@ -433,39 +455,64 @@ const inicial=[rnd(),rnd(),rnd()];if(inicial[0]===inicial[1]&&inicial[1]===inici
 strips.forEach((s,i)=>rest(s,inicial[i]));
 
 // ---------- Lo que queda guardado en este móvil ----------
-// jugador: datos para no volver a escribirlos · sesion: llave para gastar tiros
-// saldo: tiros que quedan y pedidos registrados · premios: los códigos ganados
+// secreto: identifica a este móvil (para los 3 tiros de regalo, una sola vez)
+// visita: tiros de regalo que le quedan · ocultos: premios ganados sin registrarse todavía
+// jugador / sesion / saldo: cuando ya está registrado (datos, llave y tiros)
+// premios: los códigos ganados
+let secreto=store.get('secreto');
+if(!secreto){secreto=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');store.set('secreto',secreto)}
+let visita=store.get('visita');
 let jugador=store.get('jugador');
 let sesion=store.get('sesion');
 let saldo=store.get('saldo');
 (function(){const viejo=store.get('premio');if(viejo){const l=store.get('premios')||[];if(!l.some(x=>x.codigo===viejo.codigo))l.push(viejo);store.set('premios',l);store.del('premio')}})();
 const misPremios=()=>store.get('premios')||[];
+const ocultos=()=>store.get('ocultos')||[];
+const registrado=()=>!!sesion;
+const tirosAhora=()=>registrado()?(saldo?saldo.tiros:0):(visita?visita.tiros:0);
 function pintarQuien(){
   const w=$('#whoLine');
-  if(!jugador){w.hidden=true;return}
+  if(!jugador||!sesion){w.hidden=true;return}
   w.hidden=false;
   w.innerHTML=`Jugando como <b>${esc(jugador.nombre)}</b> · <button type="button" id="cambiar">No soy yo</button>`;
   $('#cambiar').onclick=()=>{jugador=sesion=saldo=null;['jugador','sesion','saldo','premios'].forEach(k=>store.del(k));pintarQuien();pintarSaldo();pintarPendiente();
     ['#nombre','#tel','#email'].forEach(x=>$(x).value='');$('#pais').value=0;pintarPais();$('#promos').checked=false;$('#priv').checked=false};
 }
-// Tiros que quedan y cuánto falta para el próximo bono
+// Tiros que quedan, y cuánto falta para el próximo bono
 function pintarSaldo(){
-  const t=saldo?saldo.tiros:0, box=$('#saldo'), b=$('#spin');
-  b.innerHTML=t>0?`¡Girar!<span class="cuenta">${t}</span>`:(sesion?'Registrar pedido':'¡Girar!');
+  const t=tirosAhora(), box=$('#saldo'), b=$('#spin');
+  b.innerHTML=t>0?`¡Girar!<span class="cuenta">${t}</span>`:((registrado()||visita)?'Seguir jugando':'¡Girar!');
+  if(!registrado()){
+    if(!visita){box.hidden=true;return}
+    box.hidden=false;
+    const oc=ocultos().length;
+    box.innerHTML=t>0?`<div class="tiros">Tienes <span class="n">${t}</span> ${t===1?'tiro':'tiros'} de regalo</div>
+        <div class="bono">Juega gratis. Si ganas, te registras para guardar tu premio.</div>`
+      :`<div class="tiros">${oc?`¡Tienes ${oc} ${oc===1?'premio':'premios'} para guardar!`:'Ya usaste tus tiros de regalo'}</div>
+        <div class="bono">${oc?'Regístrate para ver tu código y canjearlo en el local.':'Con cada <b>ticket de compra</b> sumas 3 tiros más.'}</div>`;
+    return;
+  }
   if(!saldo){box.hidden=true;return}
   box.hidden=false;
   const pr=saldo.proximo||{}, ped=saldo.pedidos||0, falta=Math.max(0,(pr.pedidos||0)-ped);
   const hechos=ped%5===0&&ped>0?5:ped%5;
   box.innerHTML=`<div class="tiros">${t>0?`Te quedan <span class="n">${t}</span> ${t===1?'tiro':'tiros'}`:'No te quedan tiros'}</div>
-    ${pr.pedidos?`<div class="bono">Llevas <b>${ped} ${ped===1?'pedido':'pedidos'}</b>. ${falta===1?'¡En tu próximo pedido':`Te faltan ${falta} pedidos y`} te regalamos <b>+${pr.tiros} tiros</b>${falta===1?'!':'.'}
+    ${pr.pedidos?`<div class="bono">Llevas <b>${ped} ${ped===1?'ticket':'tickets'}</b>. ${falta===1?'¡Con tu próximo ticket':`Te faltan ${falta} tickets y`} te regalamos <b>+${pr.tiros} tiros</b>${falta===1?'!':'.'}
       <div class="barra" aria-hidden="true">${[1,2,3,4,5].map(k=>`<i class="${k<=hechos&&falta<5?'si':''}"></i>`).join('')}</div></div>`:''}`;
 }
 function guardarSaldo(r){saldo={tiros:r.tiros,pedidos:r.pedidos,proximo:r.proximo};store.set('saldo',saldo);pintarSaldo()}
+function guardarVisita(r){visita={tiros:r.tiros,registrado:!!r.registrado};store.set('visita',visita);pintarSaldo()}
 function pintarPendiente(){
   const hoy=new Date().toISOString().slice(0,10), box=$('#pendBox');
   // Los canjeados se muestran una semana y después se olvidan; los vencidos se van
   let l=misPremios().filter(p=>p.estado==='canjeado'?Date.now()-new Date(p.canjeado)<7*864e5:!(p.estado==='vencido'||p.vence<hoy));
   store.set('premios',l);
+  const oc=ocultos();
+  if(oc.length&&!registrado()){
+    box.innerHTML=`<button class="pend" type="button">${ico(oc[0].simbolo)}<div><b>${oc.length===1?`Ganaste: ${esc(oc[0].premio)}`:`Ganaste ${oc.length} premios`}</b><span>Regístrate para guardarlo y ver el código. Toca aquí.</span></div></button>`;
+    box.firstChild.onclick=()=>abrirFormulario('registro');
+    return;
+  }
   const vivos=l.filter(p=>p.estado!=='canjeado');
   if(!l.length){box.innerHTML='';return}
   if(vivos.length===1&&l.length===1){
@@ -508,22 +555,26 @@ function comprobarPremios(){
     const todo=misPremios();
     res.forEach((r,k)=>{if(!r||r.estado==='no_existe')return;const q=todo.find(x=>x.codigo===l[k].codigo);if(q){q.estado=r.estado;q.canjeado=r.canjeado||null;q.vence=r.vence||q.vence}});
     store.set('premios',todo);pintarPendiente();
-    // Si justo tiene un premio abierto en pantalla y se canjeó, se actualiza ahí también
     const abierto=$('#resSheet').classList.contains('on')&&todo.find(x=>x.codigo===$('#resCard').dataset.codigo);
     if(abierto&&abierto.estado==='canjeado'&&!$('#resCard').querySelector('.sello'))mostrarPremio(abierto,false);
   })().finally(()=>{comprobando=null});
   return comprobando;
 }
-// Al abrir: saldo real de la base (por si cambió) y estado de los premios
+// Al abrir: saldo real de la base (por si cambió), o los tiros de regalo si todavía no se registró
 async function refrescarSaldo(){
-  if(!sesion)return;
-  await null;   // que termine de cargar la página antes de consultar
+  await null;
   try{
-    let r;
-    if(SB){const {data,error}=await sbc.rpc('premios_saldo',{p_telefono:sesion.telefono,p_token:sesion.token});if(error)throw error;r=data}
-    else r=demoSaldo(sesion.telefono,sesion.token);
-    if(r.estado==='ok')guardarSaldo(r);
-    else if(r.estado==='sesion'){sesion=saldo=null;store.del('sesion');store.del('saldo');pintarSaldo()}
+    if(sesion){
+      let r;
+      if(SB){const {data,error}=await sbc.rpc('premios_saldo',{p_telefono:sesion.telefono,p_token:sesion.token});if(error)throw error;r=data}
+      else r=demoSaldo(sesion.telefono,sesion.token);
+      if(r.estado==='ok')return guardarSaldo(r);
+      if(r.estado==='sesion'){sesion=saldo=null;store.del('sesion');store.del('saldo')}
+    }
+    let v;
+    if(SB){const {data,error}=await sbc.rpc('premios_visita',{p_secreto:secreto,p_origen:origen||null});if(error)throw error;v=data}
+    else v=demoVisita(secreto,origen);
+    if(v.estado==='ok')guardarVisita(v);
   }catch(e){}
 }
 pintarQuien();pintarSaldo();pintarPendiente();comprobarPremios();refrescarSaldo();
@@ -602,11 +653,26 @@ function normTel(t){
   return null;
 }
 function marcar(id,mal){$(id).classList.toggle('bad',!!mal)}
-function abrirFormulario(aviso){
-  // Siempre pide el pedido; el resto se completa con lo de la vez anterior
+const hoyLocal=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const haceDias=n=>new Date(Date.now()-n*864e5).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const DIAS_TICKET=7;
+// modo: 'registro' (solo datos) · 'registro+ticket' (datos y ticket) · 'ticket' (ya registrado)
+let modoForm='registro';
+function abrirFormulario(modo,aviso){
+  modoForm=modo;
+  const datos=modo!=='ticket', ticket=modo!=='registro';
+  $('#bloqueDatos').hidden=!datos;$('#bloqueTicket').hidden=!ticket;$('#sepTicket').hidden=!datos;
+  const oc=ocultos().length;
+  $('#fTitle').textContent=modo==='ticket'?'Suma tiros con tu ticket':oc?'Guarda tu premio':'Regístrate';
+  $('#fSub').innerHTML=modo==='ticket'?'Cada ticket de compra te da <b>3 tiros</b>.'
+    :oc?`Déjanos tus datos para guardar ${oc===1?'tu premio':`tus ${oc} premios`} y ver el código.`
+    :modo==='registro+ticket'?'Déjanos tus datos y pon tu ticket de compra para sumar <b>3 tiros</b>.'
+    :'Déjanos tus datos para seguir jugando.';
+  $('#go').textContent=modo==='registro'?(oc?'Guardar mi premio':'Registrarme'):'Sumar mis tiros';
   $('#formErr').classList.toggle('on',!!aviso);$('#formErr').textContent=aviso||'';
   document.querySelectorAll('#form .bad').forEach(x=>x.classList.remove('bad'));
-  $('#pedido').value='';
+  $('#ticketNum').value='';
+  $('#ticketFecha').value=hoyLocal();$('#ticketFecha').max=hoyLocal();$('#ticketFecha').min=haceDias(DIAS_TICKET);
   if(jugador){
     $('#nombre').value=jugador.nombre||'';ponerTel(jugador.telefono);$('#email').value=jugador.email||'';
     $('#promos').checked=!!jugador.promos;$('#priv').checked=true;
@@ -614,32 +680,38 @@ function abrirFormulario(aviso){
   abrir('#formSheet');
 }
 $('#spin').onclick=()=>{
-  if(sesion&&saldo&&saldo.tiros>0)return tirar();
-  abrirFormulario(sesion&&saldo?'Ya usaste tus tiros. Registra otro pedido para sumar 3 más.':'');
+  if(tirosAhora()>0)return registrado()?tirar():tirarVisita();
+  if(registrado())return abrirFormulario('ticket','Ya usaste tus tiros. Pon otro ticket de compra para sumar 3 más.');
+  abrirFormulario(ocultos().length?'registro':'registro+ticket');
 };
-$('#pedido').addEventListener('input',()=>{const v=$('#pedido').value.replace(/\D/g,'').slice(0,3);if(v!==$('#pedido').value)$('#pedido').value=v});
-['#pedido','#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
+$('#ticketNum').addEventListener('input',()=>{const v=$('#ticketNum').value.replace(/\D/g,'').slice(0,8);if(v!==$('#ticketNum').value)$('#ticketNum').value=v});
+['#ticketNum','#ticketFecha','#nombre','#tel','#email'].forEach(s=>$(s).addEventListener('input',()=>$(s).closest('.f').classList.remove('bad')));
 $('#priv').addEventListener('change',()=>$('#cPriv').classList.remove('bad'));
 $('#form').onsubmit=e=>{
   e.preventDefault();
-  const pedido=$('#pedido').value.replace(/\D/g,'');
-  const nombre=$('#nombre').value.trim().replace(/\s+/g,' ');
-  const tel=telCompleto($('#tel').value,PAISES[$('#pais').value||0][2]);
-  const email=$('#email').value.trim().toLowerCase();
-  const okMail=!email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-  const okPed=/^\d{3}$/.test(pedido);
-  marcar('#fPedido',!okPed);marcar('#fNombre',nombre.length<2);marcar('#fTel',!tel);marcar('#fMail',!okMail);
-  $('#cPriv').classList.toggle('bad',!$('#priv').checked);
-  if(!okPed||nombre.length<2||!tel||!okMail||!$('#priv').checked){
-    const b=document.querySelector('#form .bad');if(b){const i=b.querySelector('input');i&&i.focus()}
-    return;
+  const datos=modoForm!=='ticket', ticket=modoForm!=='registro';
+  const j={nombre:$('#nombre').value.trim().replace(/\s+/g,' '),telefono:telCompleto($('#tel').value,PAISES[$('#pais').value||0][2]),
+    email:$('#email').value.trim().toLowerCase(),promos:$('#promos').checked,
+    ticket:$('#ticketNum').value.replace(/\D/g,''),fecha:$('#ticketFecha').value};
+  const malos=[];
+  if(datos){
+    const okMail=!j.email||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(j.email);
+    marcar('#fNombre',j.nombre.length<2);marcar('#fTel',!j.telefono);marcar('#fMail',!okMail);
+    $('#nombreErr').textContent='Escribe tu nombre.';
+    $('#cPriv').classList.toggle('bad',!$('#priv').checked);
+    if(j.nombre.length<2||!j.telefono||!okMail||!$('#priv').checked)malos.push(1);
   }
-  const j={pedido,nombre,telefono:tel,email,promos:$('#promos').checked};
-  registrar(j);
+  if(ticket){
+    const okT=/^\d{1,8}$/.test(j.ticket), okF=!!j.fecha&&j.fecha<=hoyLocal()&&j.fecha>=haceDias(DIAS_TICKET);
+    marcar('#fTicket',!okT);marcar('#fFecha',!okF);
+    if(!okT||!okF)malos.push(1);
+  }
+  if(malos.length){const b=document.querySelector('#form .bad');if(b){const i=b.querySelector('input');i&&i.focus()}return}
+  enviarFormulario(j);
 };
 
-// ---------- Registrar pedido y tirar ----------
-let girando=false, registrando=false;
+// ---------- Registrarse, tickets y tiros ----------
+let girando=false, enviando=false;
 async function rpc(nombre,args,demo){
   if(!SB)return demo();
   const {data,error}=await sbc.rpc(nombre,args);
@@ -649,41 +721,61 @@ function recordar(j){
   jugador={nombre:j.nombre,telefono:j.telefono,email:j.email,promos:j.promos};
   store.set('jugador',jugador);pintarQuien();
 }
-async function registrar(j){
-  if(registrando)return;registrando=true;$('#go').disabled=true;$('#go').textContent='Sumando…';
-  let r;
-  try{r=await rpc('premios_registrar_pedido',{p_nombre:j.nombre,p_telefono:j.telefono,p_pedido:j.pedido,p_email:j.email||null,p_promos:!!j.promos,p_origen:origen||null},()=>demoRegistrar(j))}
-  catch(e){r={estado:'falla'}}
-  registrando=false;$('#go').disabled=false;$('#go').textContent='Sumar mis tiros';
-  if(r.estado==='error'){
-    const campo={pedido:'#fPedido',nombre:'#fNombre',telefono:'#fTel',email:'#fMail'}[r.campo];
-    if(campo)marcar(campo,true);return;
-  }
-  cerrar('#formSheet');
-  if(r.estado==='ok'||(r.estado==='pedido_usado'&&r.propio)){
-    recordar(j);sesion={telefono:j.telefono,token:r.token};store.set('sesion',sesion);guardarSaldo(r);
-    if(r.estado==='ok'){
-      const bono=r.bono>0;
-      if(bono){confeti();try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch{}}
-      mostrarCartel(bono?`¡Pedido nº ${r.pedidos}!`:'¡Listo!',
-        bono?`Sumaste ${r.sumados} tiros por tu pedido y <b>+${r.bono} de regalo</b> por llegar a ${r.pedidos} pedidos. Tienes <b>${r.tiros} tiros</b>.`
-            :`Sumaste ${r.sumados} tiros. Tienes <b>${r.tiros} ${r.tiros===1?'tiro':'tiros'}</b> para girar.`,
-        r.tiros>0);
-    }else{
-      mostrarCartel('Ese pedido ya lo registraste',r.tiros>0?`Te quedan <b>${r.tiros} ${r.tiros===1?'tiro':'tiros'}</b>.`:'Ya usaste sus tiros. ¡Con tu próximo pedido sumas 3 más!',r.tiros>0);
+async function enviarFormulario(j){
+  if(enviando)return;enviando=true;const txt=$('#go').textContent;$('#go').disabled=true;$('#go').textContent='Un momento…';
+  try{
+    let nuevos=[], aviso='';
+    // 1. Registrarse (si hace falta)
+    if(modoForm!=='ticket'){
+      let r;
+      try{r=await rpc('premios_registrarse',{p_secreto:secreto,p_nombre:j.nombre,p_telefono:j.telefono,p_email:j.email||null,p_promos:!!j.promos,p_origen:origen||null},()=>demoRegistrarse(secreto,j))}
+      catch(e){r={estado:'falla'}}
+      if(r.estado==='error'){const c={nombre:'#fNombre',telefono:'#fTel',email:'#fMail'}[r.campo];if(c)marcar(c,true);return}
+      if(r.estado==='nombre_no_coincide'){$('#nombreErr').textContent='Este móvil ya está registrado con otro nombre. Escríbelo igual que la primera vez.';marcar('#fNombre',true);return}
+      if(r.estado==='cerrado'){cerrar('#formSheet');return mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!')}
+      if(r.estado!=='ok'&&r.estado!=='bienvenida_usada'){$('#formErr').textContent='No pudimos conectar. Revisa tu conexión e inténtalo otra vez.';$('#formErr').classList.add('on');return}
+      recordar(j);sesion={telefono:j.telefono,token:r.token};store.set('sesion',sesion);pintarQuien();guardarSaldo(r);
+      nuevos=(r.premios||[]).map(p=>({...p,nombre:j.nombre,telefono:j.telefono}));
+      nuevos.forEach(guardarPremio);
+      store.del('ocultos');visita={tiros:0,registrado:true};store.set('visita',visita);
+      if(r.estado==='bienvenida_usada')aviso='Este número ya usó sus tiros de regalo en otro móvil, así que lo que ganaste acá sin registrarte no cuenta.';
+      pintarSaldo();pintarPendiente();
     }
-  }else if(r.estado==='pedido_usado'){
-    mostrarMensaje('Ese pedido ya está registrado','Hoy ya se usó ese número de pedido. Revisa que sea el tuyo, o prueba con tu próximo pedido.');
-  }else if(r.estado==='tope_dia'){
-    mostrarMensaje('Por hoy ya está','Llegaste al máximo de pedidos de hoy con este móvil. ¡Vuelve mañana!');
-  }else if(r.estado==='cerrado'){
-    mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
-  }else{
-    mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez.');
-  }
+    // 2. El ticket (si lo puso)
+    let t=null;
+    if(modoForm!=='registro'){
+      try{t=await rpc('premios_registrar_ticket',{p_telefono:sesion.telefono,p_token:sesion.token,p_ticket:j.ticket,p_fecha:j.fecha},()=>demoRegistrarTicket(sesion.telefono,sesion.token,j.ticket,j.fecha))}
+      catch(e){t={estado:'falla'}}
+      if(t.estado==='error'){marcar(t.campo==='fecha'?'#fFecha':'#fTicket',true);modoForm='ticket';abrirFormulario('ticket','Revisa el número y la fecha del ticket.');return}
+      if(t.estado==='ticket_no_coincide'){modoForm='ticket';
+        $('#formErr').textContent='Ese número de ticket no coincide con una compra de esa fecha. Revisa el número y la fecha que salen en el ticket.';
+        $('#formErr').classList.add('on');$('#bloqueDatos').hidden=true;$('#sepTicket').hidden=true;$('#fTitle').textContent='Revisa tu ticket';marcar('#fTicket',true);return}
+      if(t.estado==='sesion'){sesion=saldo=null;store.del('sesion');store.del('saldo');abrirFormulario('registro+ticket','Vuelve a poner tus datos para seguir jugando en este móvil.');return}
+    }
+    cerrar('#formSheet');
+    // 3. Qué le contamos
+    if(t&&t.estado==='ok'){
+      guardarSaldo(t);
+      const bono=t.bono>0;
+      if(bono){confeti();try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch{}}
+      return mostrarCartel(bono?`¡Ticket nº ${t.pedidos}!`:'¡Listo!',
+        (aviso?aviso+'<br><br>':'')+(bono?`Sumaste ${t.sumados} tiros por tu ticket y <b>+${t.bono} de regalo</b> por llegar a ${t.pedidos} tickets. Tienes <b>${t.tiros} tiros</b>.`
+            :`Sumaste ${t.sumados} tiros. Tienes <b>${t.tiros} ${t.tiros===1?'tiro':'tiros'}</b> para girar.`),t.tiros>0,nuevos);
+    }
+    if(t&&t.estado==='ticket_usado'){guardarSaldo(t);return mostrarCartel(t.propio?'Ese ticket ya lo usaste':'Ese ticket ya se usó',
+      t.propio?(t.tiros>0?`Te quedan <b>${t.tiros} ${t.tiros===1?'tiro':'tiros'}</b>.`:'¡Con tu próxima compra sumas 3 tiros más!'):'Cada ticket sirve una sola vez. Revisa que sea el tuyo.',t.propio&&t.tiros>0,nuevos)}
+    if(t&&t.estado==='tope_dia')return mostrarMensaje('Por hoy ya está','Llegaste al máximo de tickets de hoy con este móvil. ¡Vuelve mañana!');
+    if(t&&t.estado==='cerrado')return mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
+    if(t)return mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez.');
+    // Solo se registró
+    if(nuevos.length===1)return mostrarPremio(nuevos[0],false,'¡Listo! Tu premio quedó guardado:');
+    if(nuevos.length>1){mostrarCartel('¡Listo!',`Guardamos tus ${nuevos.length} premios. Tócalos abajo para ver los códigos.`,saldo&&saldo.tiros>0);return}
+    mostrarCartel('¡Listo!',(aviso?aviso+' ':'')+(saldo&&saldo.tiros>0?`Tienes <b>${saldo.tiros} ${saldo.tiros===1?'tiro':'tiros'}</b>.`:'Con cada ticket de compra sumas 3 tiros.'),saldo&&saldo.tiros>0);
+  }finally{enviando=false;$('#go').disabled=false;$('#go').textContent=txt}
 }
-async function tirar(){
-  if(girando||!sesion)return;
+// Giro común: anima los rodillos y frena donde dice la base
+async function girar(llamada){
+  if(girando)return null;
   cerrar('#resSheet');
   girando=true;
   const m=$('#machine');m.classList.remove('win');m.classList.add('spinning');
@@ -691,59 +783,94 @@ async function tirar(){
   strips.forEach(startLoop);
   const t0=Date.now();
   let r;
-  try{r=await rpc('premios_tirar',{p_telefono:sesion.telefono,p_token:sesion.token},()=>demoTirar(sesion.telefono,sesion.token))}
-  catch(err){r={estado:'falla'}}
+  try{r=await llamada()}catch(err){r={estado:'falla'}}
   await new Promise(ok=>setTimeout(ok,Math.max(0,900-(Date.now()-t0))));
-
+  if(r.estado==='ok')await Promise.all(strips.map((s,i)=>stopAt(s,r.rodillos[i],1100+i*650)));
+  else await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250)));
+  m.classList.remove('spinning');
+  girando=false;$('#spin').disabled=false;
+  return r;
+}
+function festejar(){
+  const m=$('#machine');m.classList.add('win');reels.forEach(x=>x.classList.add('hit'));setTimeout(()=>reels.forEach(x=>x.classList.remove('hit')),1300);
+  confeti();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
+}
+// Tiros de regalo, sin registrarse
+async function tirarVisita(){
+  const r=await girar(()=>rpc('premios_tirar_visita',{p_secreto:secreto},()=>demoTirarVisita(secreto)));
+  if(!r)return;
   if(r.estado==='ok'){
-    const rod=r.rodillos;
-    await Promise.all(strips.map((s,i)=>stopAt(s,rod[i],1100+i*650)));
-    m.classList.remove('spinning');
-    girando=false;$('#spin').disabled=false;guardarSaldo(r);
-    if(r.codigo){
-      m.classList.add('win');reels.forEach(x=>x.classList.add('hit'));setTimeout(()=>reels.forEach(x=>x.classList.remove('hit')),1300);
-      const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:jugador&&jugador.nombre,telefono:sesion.telefono};
-      guardarPremio(p);
-      confeti();try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch{}
-      setTimeout(()=>mostrarPremio(p,true),1100);
-    }else{
-      setTimeout(()=>mostrarNada(r,rod),900);
-    }
+    guardarVisita({tiros:r.tiros,registrado:false});
+    if(r.oculto){
+      const l=ocultos();l.push({premio:r.premio,simbolo:r.simbolo});store.set('ocultos',l);pintarSaldo();pintarPendiente();
+      festejar();
+      setTimeout(()=>mostrarPremioOculto({premio:r.premio,simbolo:r.simbolo},r.tiros),1100);
+    }else setTimeout(()=>mostrarNada(r,r.rodillos),900);
     return;
   }
-  await Promise.all(strips.map((s,i)=>stopAt(s,visible.get(s)[1],500+i*250)));
-  m.classList.remove('spinning');
-  girando=false;$('#spin').disabled=false;pintarSaldo();
-  if(r.estado==='sin_tiros'){
-    guardarSaldo({...saldo,tiros:0,pedidos:r.pedidos,proximo:r.proximo});
-    abrirFormulario('Ya usaste tus tiros. Registra otro pedido para sumar 3 más.');
-  }else if(r.estado==='sesion'){
-    sesion=saldo=null;store.del('sesion');store.del('saldo');pintarSaldo();
-    abrirFormulario('Para seguir jugando en este móvil, vuelve a poner tu número de pedido.');
-  }else if(r.estado==='tope_dia'){
-    mostrarMensaje('Por hoy ya está','Llegaste al máximo de tiros de hoy. ¡Guarda los que te quedan para mañana!');
-  }else if(r.estado==='cerrado'){
-    mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
-  }else{
-    mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez. No se gastó ningún tiro.');
-  }
+  pintarSaldo();
+  if(r.estado==='registrado'){visita={tiros:0,registrado:true};store.set('visita',visita);return abrirFormulario('registro','Este móvil ya está registrado: pon tus datos para seguir.')}
+  if(r.estado==='sin_tiros'){guardarVisita({tiros:0});return abrirFormulario(ocultos().length?'registro':'registro+ticket')}
+  if(r.estado==='sesion'){await refrescarSaldo();return mostrarMensaje('Probemos otra vez','Vuelve a tocar Girar.')}
+  if(r.estado==='cerrado')return mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
+  mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez. No se gastó ningún tiro.');
 }
-// Botones de abajo de cada cartel: girar otra vez si quedan tiros
+// Tiros del saldo, ya registrado
+async function tirar(){
+  if(!sesion)return;
+  const r=await girar(()=>rpc('premios_tirar',{p_telefono:sesion.telefono,p_token:sesion.token},()=>demoTirar(sesion.telefono,sesion.token)));
+  if(!r)return;
+  if(r.estado==='ok'){
+    guardarSaldo(r);
+    if(r.codigo){
+      const p={codigo:r.codigo,premio:r.premio,simbolo:r.simbolo,vence:r.vence,nombre:jugador&&jugador.nombre,telefono:sesion.telefono};
+      guardarPremio(p);festejar();
+      setTimeout(()=>mostrarPremio(p,true),1100);
+    }else setTimeout(()=>mostrarNada(r,r.rodillos),900);
+    return;
+  }
+  pintarSaldo();
+  if(r.estado==='sin_tiros'){guardarSaldo({...saldo,tiros:0,pedidos:r.pedidos,proximo:r.proximo});return abrirFormulario('ticket','Ya usaste tus tiros. Pon otro ticket de compra para sumar 3 más.')}
+  if(r.estado==='sesion'){sesion=saldo=null;store.del('sesion');store.del('saldo');pintarSaldo();return abrirFormulario('registro','Para seguir jugando en este móvil, vuelve a poner tus datos.')}
+  if(r.estado==='tope_dia')return mostrarMensaje('Por hoy ya está','Llegaste al máximo de tiros de hoy. ¡Guarda los que te quedan para mañana!');
+  if(r.estado==='cerrado')return mostrarMensaje('Ahora no se puede jugar','La ruleta está en pausa. ¡Vuelve pronto!');
+  mostrarMensaje('Algo falló','No pudimos conectar. Revisa tu conexión e inténtalo otra vez. No se gastó ningún tiro.');
+}
+// Botones de abajo de cada cartel: girar otra vez si quedan tiros, o sumar más
 function botonesFinal(txtListo){
-  const t=saldo?saldo.tiros:0;
-  return t>0?`<div class="btns2"><button class="btn" type="button" id="otraVez">Girar otra vez (${t})</button><button class="btn ghost" type="button" data-close>${txtListo||'Listo'}</button></div>`
-            :`<div class="btns2"><button class="btn" type="button" id="otroPedido">Registrar otro pedido</button><button class="btn ghost" type="button" data-close>${txtListo||'Listo'}</button></div>`;
+  const t=tirosAhora();
+  if(t>0)return`<div class="btns2"><button class="btn" type="button" id="otraVez">Girar otra vez (${t})</button><button class="btn ghost" type="button" data-close>${txtListo||'Listo'}</button></div>`;
+  const txt=registrado()?'Sumar tiros con un ticket':ocultos().length?'Guardar mi premio':'Seguir jugando';
+  return`<div class="btns2"><button class="btn" type="button" id="otroPedido">${txt}</button><button class="btn ghost" type="button" data-close>${txtListo||'Listo'}</button></div>`;
 }
 function conectarFinal(){
   const a=$('#otraVez'),b=$('#otroPedido');
-  if(a)a.onclick=()=>{cerrar('#resSheet');setTimeout(tirar,250)};
-  if(b)b.onclick=()=>{cerrar('#resSheet');abrirFormulario('')};
+  if(a)a.onclick=()=>{cerrar('#resSheet');setTimeout(()=>$('#spin').click(),250)};
+  if(b)b.onclick=()=>{cerrar('#resSheet');setTimeout(()=>$('#spin').click(),150)};
 }
-function mostrarCartel(t,html,girar){
+function mostrarCartel(t,html,girar,nuevos){
   $('#resCard').dataset.codigo='';
   $('#resCard').innerHTML=`<div class="big">${esc(t)}</div><p class="sub" style="font-size:18px;margin-top:10px">${html}</p>
+    ${nuevos&&nuevos.length?`<div class="lista">${nuevos.map((p,i)=>`<button type="button" data-n="${i}">${ico(p.simbolo)}<div><b>${esc(p.premio)}</b><span>Código ${esc(p.codigo)}</span></div></button>`).join('')}</div>`:''}
     ${girar?`<div class="btns2"><button class="btn" type="button" id="otraVez">¡A girar!</button></div>`:'<button class="btn" type="button" data-close>Vale</button>'}`;
+  if(nuevos)$('#resCard').querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>mostrarPremio(nuevos[b.dataset.n],false));
   conectarFinal();abrir('#resSheet');
+}
+// Ganó sin estar registrado: el premio se ve, el código se entrega al registrarse
+function mostrarPremioOculto(p,quedan){
+  $('#resCard').dataset.codigo='';
+  $('#resCard').innerHTML=`
+    <div class="ico">${ico(p.simbolo)}</div>
+    <div class="big win">¡Ganaste!</div>
+    <p class="sub" style="font-size:21px;color:var(--ink);font-weight:700;margin-top:12px">${esc(p.premio)}</p>
+    <div class="ticket"><div class="lbl">Código</div><div class="code" style="letter-spacing:.3em;color:#bdbdbd">•••••</div>
+      <div class="vto">Regístrate para ver tu código y guardarlo</div></div>
+    <div class="btns2"><button class="btn" type="button" id="guardarOculto">Guardar mi premio</button>
+      ${quedan>0?`<button class="btn ghost" type="button" id="otraVez">Seguir girando (${quedan}) y registrarme después</button>`:''}</div>`;
+  $('#guardarOculto').onclick=()=>{cerrar('#resSheet');abrirFormulario('registro')};
+  conectarFinal();
+  $('#live').textContent=`Ganaste: ${p.premio}. Regístrate para ver el código.`;
+  abrir('#resSheet');
 }
 
 function mostrarPremio(p,recien,titulo){
@@ -767,7 +894,7 @@ function mostrarPremio(p,recien,titulo){
   }
   $('#resCard').innerHTML=`
     <div class="ico">${ico(p.simbolo)}</div>
-    ${titulo?`<p class="sub" style="margin-bottom:8px">${esc(titulo)}. Este es tu premio:</p>`:''}
+    ${titulo?`<p class="sub" style="margin-bottom:8px">${esc(titulo)}</p>`:''}
     <div class="big win">${recien?'¡Ganaste!':'Tu premio'}</div>
     <p class="sub" style="font-size:21px;color:var(--ink);font-weight:700;margin-top:12px">${esc(p.premio)}</p>
     <div class="ticket">
@@ -791,7 +918,7 @@ function mostrarNada(r,rod){
   $('#resCard').dataset.codigo='';
   $('#resCard').innerHTML=`
     <div class="big">${casi?'¡Casi!':'Esta vez no'}</div>
-    <p class="sub">${casi?'Te faltó uno. ':''}${r.tiros>0?`Te ${r.tiros===1?'queda':'quedan'} <b>${r.tiros} ${r.tiros===1?'tiro':'tiros'}</b>.`:'Con tu próximo pedido sumas 3 tiros más.'}</p>
+    <p class="sub">${casi?'Te faltó uno. ':''}${r.tiros>0?`Te ${r.tiros===1?'queda':'quedan'} <b>${r.tiros} ${r.tiros===1?'tiro':'tiros'}</b>.`:registrado()?'Con tu próxima compra sumas 3 tiros más.':ocultos().length?'Regístrate para guardar tu premio.':'Regístrate y pon tu ticket de compra para sumar 3 tiros más.'}</p>
     ${botonesFinal('Ahora no')}`;
   conectarFinal();
   $('#live').textContent='Sin premio esta vez.';
@@ -822,48 +949,13 @@ function confeti(){
 
 // ---------- Modo demo (sin Supabase) ----------
 // Misma lógica que las funciones de schema.sql, guardando en este navegador.
-const demoDb=()=>{const d=store.get('demo_db')||{};d.jugadores=d.jugadores||{};d.jugadas=d.jugadas||[];d.pedidos=d.pedidos||[];return d};
+// (En demo no hay ventas de Ágora: todos los tickets quedan "pendientes" de verificar.)
+const demoDb=()=>{const d=store.get('demo_db')||{};d.jugadores=d.jugadores||{};d.jugadas=d.jugadas||[];d.pedidos=d.pedidos||[];d.visitantes=d.visitantes||{};return d};
 const demoHoy=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
 const demoBono=n=>n>0&&n%10===0?DEMO.bono10:n>0&&n%5===0?DEMO.bono5:0;
 const demoProx=n=>{const m=(Math.floor(n/5)+1)*5;return{pedidos:m,tiros:demoBono(m)}};
 const demoTok=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
-function demoEstado(codigo,tel){
-  const db=demoDb(), j=db.jugadas.find(x=>x.codigo===codigo&&x.telefono===normTel(tel));
-  if(!j)return{estado:'no_existe'};
-  return{estado:j.canjeado?'canjeado':j.vence<demoHoy()?'vencido':'pendiente',canjeado:j.canjeado,vence:j.vence,premio:j.premio,simbolo:j.simbolo};
-}
-function demoRegistrar(j){
-  const db=demoDb(), hoy=demoHoy(), tel=normTel(j.telefono), ped=String(j.pedido||'').replace(/\D/g,'');
-  if(String(j.nombre||'').trim().length<2)return{estado:'error',campo:'nombre'};
-  if(!tel)return{estado:'error',campo:'telefono'};
-  if(!/^\d{3}$/.test(ped))return{estado:'error',campo:'pedido'};
-  const usado=db.pedidos.find(x=>x.pedido===ped&&x.dia===hoy), prev=db.jugadores[tel];
-  if(usado){
-    if(usado.telefono===tel&&prev&&prev.nombre.toLowerCase()===j.nombre.toLowerCase()){
-      const tok=demoTok();prev.token=tok;store.set('demo_db',db);
-      return{estado:'pedido_usado',propio:true,token:tok,tiros:prev.tiros,pedidos:prev.pedidos,proximo:demoProx(prev.pedidos)};
-    }
-    return{estado:'pedido_usado',propio:false};
-  }
-  const sinLimite=new URLSearchParams(location.search).has('demo_sin_limite');
-  if(!sinLimite&&db.pedidos.filter(x=>x.telefono===tel&&x.dia===hoy).length>=DEMO.maxPedidosDia)return{estado:'tope_dia'};
-  const jug=db.jugadores[tel]=Object.assign(prev||{telefono:tel,jugadas:0,premios:0,pedidos:0,tiros:0,primera_jugada:new Date().toISOString(),origen:origen||''},
-    {nombre:j.nombre,email:j.email||(prev&&prev.email)||'',acepta_promos:!!j.promos});
-  jug.pedidos++;const bono=demoBono(jug.pedidos);jug.tiros+=DEMO.tirosPorPedido+bono;
-  const tok=demoTok();jug.token=tok;
-  db.pedidos.push({telefono:tel,pedido:ped,dia:hoy,creado:new Date().toISOString(),tiros:DEMO.tirosPorPedido+bono,bono});
-  store.set('demo_db',db);
-  return{estado:'ok',token:tok,tiros:jug.tiros,pedidos:jug.pedidos,sumados:DEMO.tirosPorPedido,bono,proximo:demoProx(jug.pedidos)};
-}
-function demoSaldo(tel,tok){
-  const jug=demoDb().jugadores[normTel(tel)];
-  if(!jug||jug.token!==tok)return{estado:'sesion'};
-  return{estado:'ok',tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
-}
-function demoTirar(tel,tok){
-  const db=demoDb(), t=normTel(tel), jug=db.jugadores[t];
-  if(!jug||jug.token!==tok)return{estado:'sesion'};
-  if(jug.tiros<=0)return{estado:'sin_tiros',pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
+function demoSorteo(db){
   const r=Math.random()*100;let acc=0,g=null;
   for(const p of PREMIOS){acc+=p.prob;if(r<acc){g=p;break}}
   let rod,cod=null,vto=null;
@@ -875,11 +967,81 @@ function demoTirar(tel,tok){
   }else{
     rod=[rnd(),rnd(),rnd()];if(rod[0]===rod[1]&&rod[1]===rod[2])rod[2]=SYMS[(SYMS.indexOf(rod[2])+1)%SYMS.length];
   }
-  const ped=db.pedidos.filter(x=>x.telefono===t).sort((a,b)=>b.creado.localeCompare(a.creado))[0];
-  db.jugadas.push({id:db.jugadas.length+1,telefono:t,creado:new Date().toISOString(),dia:demoHoy(),rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,canjeado:null,canjeado_por:null,origen:jug.origen||'',pedido:ped&&ped.pedido});
-  jug.tiros--;jug.jugadas++;if(g)jug.premios++;jug.ultima_jugada=new Date().toISOString();
+  return{simbolo:g&&g.simbolo,premio:g&&g.premio,rodillos:rod,codigo:cod,vence:vto};
+}
+function demoEstado(codigo,tel){
+  const db=demoDb(), j=db.jugadas.find(x=>x.codigo===codigo&&x.telefono===normTel(tel));
+  if(!j)return{estado:'no_existe'};
+  return{estado:j.canjeado?'canjeado':j.vence<demoHoy()?'vencido':'pendiente',canjeado:j.canjeado,vence:j.vence,premio:j.premio,simbolo:j.simbolo};
+}
+function demoVisita(sec,ori){
+  const db=demoDb();
+  if(!db.visitantes[sec])db.visitantes[sec]={id:Object.keys(db.visitantes).length+1,tiros:DEMO.bienvenida,telefono:null,origen:ori||'',creado:new Date().toISOString()};
   store.set('demo_db',db);
-  return{estado:'ok',rodillos:rod,simbolo:g&&g.simbolo,premio:g&&g.premio,codigo:cod,vence:vto,tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
+  const v=db.visitantes[sec];
+  return{estado:'ok',tiros:v.tiros,registrado:!!v.telefono,pendientes:db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono&&x.codigo).length};
+}
+function demoTirarVisita(sec){
+  const db=demoDb(), v=db.visitantes[sec];
+  if(!v)return{estado:'sesion'};
+  if(v.telefono)return{estado:'registrado'};
+  if(v.tiros<=0)return{estado:'sin_tiros'};
+  const s=demoSorteo(db);
+  db.jugadas.push({id:db.jugadas.length+1,telefono:null,visitante:v.id,creado:new Date().toISOString(),dia:demoHoy(),rodillos:s.rodillos,simbolo:s.simbolo,premio:s.premio,codigo:s.codigo,vence:s.vence,canjeado:null,canjeado_por:null,origen:v.origen,canal:'bienvenida'});
+  v.tiros--;store.set('demo_db',db);
+  return{estado:'ok',rodillos:s.rodillos,simbolo:s.simbolo,premio:s.premio,vence:s.vence,tiros:v.tiros,oculto:!!s.codigo};
+}
+function demoRegistrarse(sec,j){
+  const db=demoDb(), tel=normTel(j.telefono), v=db.visitantes[sec];
+  if(String(j.nombre||'').trim().length<2)return{estado:'error',campo:'nombre'};
+  if(!tel)return{estado:'error',campo:'telefono'};
+  let jug=db.jugadores[tel];
+  if(jug&&jug.nombre.toLowerCase()!==j.nombre.toLowerCase())return{estado:'nombre_no_coincide'};
+  const nuevo=!jug;
+  jug=db.jugadores[tel]=jug||{telefono:tel,nombre:j.nombre,jugadas:0,premios:0,pedidos:0,tiros:0,primera_jugada:new Date().toISOString(),origen:origen||(v&&v.origen)||'',bienvenida:null};
+  jug.email=j.email||jug.email||'';jug.acepta_promos=!!j.promos;
+  let estado='ok', premios=[];
+  if(v&&!v.telefono){
+    const mias=db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono);
+    if(!jug.bienvenida){
+      mias.forEach(x=>x.telefono=tel);
+      jug.bienvenida=new Date().toISOString();jug.jugadas+=mias.length;jug.premios+=mias.filter(x=>x.codigo).length;jug.tiros+=v.tiros;
+      premios=mias.filter(x=>x.codigo).map(x=>({codigo:x.codigo,premio:x.premio,simbolo:x.simbolo,vence:x.vence}));
+    }else{estado='bienvenida_usada';db.jugadas=db.jugadas.filter(x=>!(x.visitante===v.id&&!x.telefono))}
+    v.telefono=tel;v.tiros=0;
+  }
+  const tok=demoTok();jug.token=tok;store.set('demo_db',db);
+  return{estado,token:tok,nuevo,tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos),premios};
+}
+function demoRegistrarTicket(tel,tok,ticket,fecha){
+  const db=demoDb(), t=normTel(tel), jug=db.jugadores[t], hoy=demoHoy(), num=String(ticket||'').replace(/\D/g,'');
+  if(!/^\d{1,8}$/.test(num))return{estado:'error',campo:'ticket'};
+  if(!fecha||fecha>hoy||fecha<new Date(Date.now()-DEMO.diasTicket*864e5).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'}))return{estado:'error',campo:'fecha'};
+  if(!jug||jug.token!==tok)return{estado:'sesion'};
+  const usado=db.pedidos.find(x=>x.ticket===+num&&String(x.fecha_ticket).slice(0,4)===fecha.slice(0,4));
+  if(usado)return{estado:'ticket_usado',propio:usado.telefono===t,tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
+  const sinLimite=new URLSearchParams(location.search).has('demo_sin_limite');
+  if(!sinLimite&&db.pedidos.filter(x=>x.telefono===t&&x.dia===hoy).length>=DEMO.maxPedidosDia)return{estado:'tope_dia'};
+  jug.pedidos++;const bono=demoBono(jug.pedidos);jug.tiros+=DEMO.tirosPorPedido+bono;
+  db.pedidos.push({telefono:t,ticket:+num,fecha_ticket:fecha,dia:hoy,creado:new Date().toISOString(),tiros:DEMO.tirosPorPedido+bono,bono,verif:'pendiente'});
+  store.set('demo_db',db);
+  return{estado:'ok',tiros:jug.tiros,pedidos:jug.pedidos,sumados:DEMO.tirosPorPedido,bono,proximo:demoProx(jug.pedidos)};
+}
+function demoSaldo(tel,tok){
+  const jug=demoDb().jugadores[normTel(tel)];
+  if(!jug||jug.token!==tok)return{estado:'sesion'};
+  return{estado:'ok',tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
+}
+function demoTirar(tel,tok){
+  const db=demoDb(), t=normTel(tel), jug=db.jugadores[t];
+  if(!jug||jug.token!==tok)return{estado:'sesion'};
+  if(jug.tiros<=0)return{estado:'sin_tiros',pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
+  const s=demoSorteo(db);
+  const ped=db.pedidos.filter(x=>x.telefono===t).sort((a,b)=>b.creado.localeCompare(a.creado))[0];
+  db.jugadas.push({id:db.jugadas.length+1,telefono:t,creado:new Date().toISOString(),dia:demoHoy(),rodillos:s.rodillos,simbolo:s.simbolo,premio:s.premio,codigo:s.codigo,vence:s.vence,canjeado:null,canjeado_por:null,origen:jug.origen||'',pedido:ped&&ped.pedido,ticket:ped&&ped.ticket,canal:ped?'ticket':'bienvenida'});
+  jug.tiros--;jug.jugadas++;if(s.codigo)jug.premios++;jug.ultima_jugada=new Date().toISOString();
+  store.set('demo_db',db);
+  return{estado:'ok',...s,tiros:jug.tiros,pedidos:jug.pedidos,proximo:demoProx(jug.pedidos)};
 }
 </script>
 </body>
