@@ -42,6 +42,8 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 .login label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
 .login .btn{width:100%;margin-top:18px}
 .msg{margin-top:12px;font-size:14px;color:var(--danger);min-height:1em}
+.msg.ok{color:var(--ok)}
+.login .olvide{display:block;margin:14px auto 0;background:none;border:0;color:var(--out-ink);text-decoration:underline;cursor:pointer;font-size:13px}
 
 /* Canje */
 .canje{margin-top:18px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
@@ -136,7 +138,14 @@ const SUPABASE_URL='https://cgkpklimplpedgxbgzvu.supabase.co';
 const SUPABASE_KEY='sb_publishable_yG1hrdoynoxBBYh9LX7QpA_we_bb_qC';
 
 const SB=!!(SUPABASE_URL&&SUPABASE_KEY);
-const sbc=SB?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'terrys-premios-local'}}):null;
+const sbc=SB?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'terrys-premios-local',flowType:'implicit',detectSessionInUrl:true}}):null;
+// ¿Venimos del link "restablecer contraseña" del mail?
+const URL_HASH=new URLSearchParams(location.hash.slice(1)), URL_QS=new URLSearchParams(location.search);
+const vieneDeRecuperacion=URL_HASH.get('type')==='recovery'||URL_QS.get('type')==='recovery';
+const errorLink=URL_HASH.get('error_code')||URL_QS.get('error_code');
+let pidiendoClaveNueva=false;
+if(sbc)sbc.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'&&!pidiendoClaveNueva)setTimeout(pintarClaveNueva,0)});
+const limpiarDireccion=()=>history.replaceState(null,'',location.pathname);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hoyISO=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
@@ -210,7 +219,17 @@ function pintarLogin(msg=''){
     <h1>Terry's · Premios</h1><p>Entrada del local para canjear premios y ver la base.</p>
     <label for="le">Email</label><input type="email" id="le" autocomplete="username" required>
     <label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password" required>
-    <button class="btn" id="lb">Entrar</button><div class="msg" id="lm">${esc(msg)}</div></form>`;
+    <button class="btn" id="lb">Entrar</button><div class="msg" id="lm">${esc(msg)}</div>
+    <button type="button" class="olvide" id="lo">¿Olvidaste tu contraseña?</button></form>`;
+  $('#lo').onclick=async()=>{
+    const em=$('#le').value.trim(), m=$('#lm');m.className='msg';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){m.textContent='Escribe tu email arriba y vuelve a tocar "¿Olvidaste tu contraseña?".';$('#le').focus();return}
+    $('#lo').disabled=true;
+    const {error}=await sbc.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+    $('#lo').disabled=false;
+    if(error){m.textContent=/rate|seconds/i.test(error.message)?'Espera un minuto antes de pedir otro mail.':'No se pudo mandar el mail: '+error.message;return}
+    m.className='msg ok';m.textContent='Te mandamos un mail a '+em+'. Abre el link desde este mismo dispositivo para poner una contraseña nueva.';
+  };
   $('#lf').onsubmit=async e=>{
     e.preventDefault();$('#lb').disabled=true;$('#lm').textContent='';
     const {error}=await sbc.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});
@@ -218,7 +237,33 @@ function pintarLogin(msg=''){
     entrar();
   };
 }
+function pintarClaveNueva(){
+  pidiendoClaveNueva=true;
+  $('#app').innerHTML=`<form class="login" id="nf">
+    <h1>Contraseña nueva</h1><p>Elige una contraseña nueva para entrar al local (y a Administración, que usa la misma).</p>
+    <label for="n1">Contraseña nueva</label><input type="password" id="n1" autocomplete="new-password" minlength="8" required>
+    <label for="n2">Repítela</label><input type="password" id="n2" autocomplete="new-password" minlength="8" required>
+    <button class="btn" id="nb">Guardar contraseña</button><div class="msg" id="nm"></div></form>`;
+  $('#n1').focus();
+  $('#nf').onsubmit=async e=>{
+    e.preventDefault();const a=$('#n1').value,b=$('#n2').value,m=$('#nm');m.className='msg';
+    if(a.length<8){m.textContent='Tiene que tener al menos 8 caracteres.';return}
+    if(a!==b){m.textContent='Las dos contraseñas no coinciden.';return}
+    $('#nb').disabled=true;
+    const {error}=await sbc.auth.updateUser({password:a});
+    if(error){$('#nb').disabled=false;m.textContent=/same|different/i.test(error.message)?'Tiene que ser distinta a la anterior.':/session|expired|missing/i.test(error.message)?'El link venció. Vuelve a pedir el mail desde la entrada.':'No se pudo guardar: '+error.message;return}
+    pidiendoClaveNueva=false;limpiarDireccion();
+    toast('Contraseña cambiada ✓');entrar();
+  };
+}
 async function entrar(){
+  if(SB&&errorLink){limpiarDireccion();return pintarLogin(errorLink==='otp_expired'?'El link del mail venció o ya se usó. Pide uno nuevo con "¿Olvidaste tu contraseña?".':'El link del mail no es válido. Pide uno nuevo.')}
+  if(SB&&vieneDeRecuperacion){
+    // Espera a que la librería lea la sesión que trae el link
+    for(let i=0;i<20&&!(await sbc.auth.getSession()).data.session;i++)await new Promise(r=>setTimeout(r,150));
+    if((await sbc.auth.getSession()).data.session)return pintarClaveNueva();
+    limpiarDireccion();return pintarLogin('El link del mail venció o ya se usó. Pide uno nuevo con "¿Olvidaste tu contraseña?".');
+  }
   if(SB){
     const {data:{session}}=await sbc.auth.getSession();
     if(!session)return pintarLogin();
