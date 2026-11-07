@@ -487,11 +487,17 @@ function pintarQuien(){
 // Tiros que quedan, y cuánto falta para el próximo bono
 function pintarSaldo(){
   const t=tirosAhora(), box=$('#saldo'), b=$('#spin');
-  b.innerHTML=t>0?`¡Girar!<span class="cuenta">${t}</span>`:((registrado()||visita)?'Seguir jugando':'¡Girar!');
+  const sinRegalo=!registrado()&&visita&&!visita.regalo&&!ocultos().length;   // entró por la bolsa: juega con su ticket
+  b.innerHTML=t>0?`¡Girar!<span class="cuenta">${t}</span>`:sinRegalo?'Sumar mis tiros':((registrado()||visita)?'Seguir jugando':'¡Girar!');
   if(!registrado()){
     if(!visita){box.hidden=true;return}
     box.hidden=false;
     const oc=ocultos().length;
+    if(sinRegalo&&t<=0){
+      box.innerHTML=`<div class="tiros">Pon tu ticket y suma <span class="n">3</span> tiros</div>
+        <div class="bono">Regístrate y pon el número y la fecha de tu ticket de compra.</div>`;
+      return;
+    }
     box.innerHTML=t>0?`<div class="tiros">Tienes <span class="n">${t}</span> ${t===1?'tiro':'tiros'} de regalo</div>
         <div class="bono">${ocultos().length?'¡Ya ganaste! Sigue girando y después guarda tu premio.':'Juega gratis: <b>uno de tus tiros trae premio seguro</b>.'}</div>`
       :`<div class="tiros">${oc?`¡Tienes ${oc} ${oc===1?'premio':'premios'} para guardar!`:'Ya usaste tus tiros de regalo'}</div>
@@ -507,7 +513,7 @@ function pintarSaldo(){
       <div class="barra" aria-hidden="true">${[1,2,3,4,5].map(k=>`<i class="${k<=hechos&&falta<5?'si':''}"></i>`).join('')}</div></div>`:''}`;
 }
 function guardarSaldo(r){saldo={tiros:r.tiros,pedidos:r.pedidos,proximo:r.proximo};store.set('saldo',saldo);pintarSaldo()}
-function guardarVisita(r){visita={tiros:r.tiros,registrado:!!r.registrado};store.set('visita',visita);pintarSaldo()}
+function guardarVisita(r){visita={tiros:r.tiros,registrado:!!r.registrado,regalo:r.regalo!==undefined?!!r.regalo:!!(visita&&visita.regalo)};store.set('visita',visita);pintarSaldo()}
 function pintarPendiente(){
   const hoy=new Date().toISOString().slice(0,10), box=$('#pendBox');
   // Los canjeados se muestran una semana y después se olvidan; los vencidos se van
@@ -1042,10 +1048,12 @@ function demoEstado(codigo,tel){
 }
 function demoVisita(sec,ori){
   const db=demoDb();
-  if(!db.visitantes[sec])db.visitantes[sec]={id:Object.keys(db.visitantes).length+1,tiros:DEMO.bienvenida,telefono:null,origen:ori||'',creado:new Date().toISOString(),tiroPremio:1+Math.floor(Math.random()*DEMO.bienvenida)};
-  store.set('demo_db',db);
+  const da=ori==='folleto';   // los tiros de regalo son solo para el folleto de la calle
+  if(!db.visitantes[sec])db.visitantes[sec]={id:Object.keys(db.visitantes).length+1,tiros:da?DEMO.bienvenida:0,regalo:da,telefono:null,origen:ori||'',creado:new Date().toISOString(),tiroPremio:1+Math.floor(Math.random()*DEMO.bienvenida)};
   const v=db.visitantes[sec];
-  return{estado:'ok',tiros:v.tiros,registrado:!!v.telefono,pendientes:db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono&&x.codigo).length};
+  if(da&&!v.regalo&&!v.telefono){v.tiros+=DEMO.bienvenida;v.regalo=true;v.tiroPremio=1+Math.floor(Math.random()*DEMO.bienvenida)}
+  store.set('demo_db',db);
+  return{estado:'ok',tiros:v.tiros,registrado:!!v.telefono,regalo:!!v.regalo,pendientes:db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono&&x.codigo).length};
 }
 function demoTirarVisita(sec){
   const db=demoDb(), v=db.visitantes[sec];
@@ -1072,7 +1080,8 @@ function demoRegistrarse(sec,j){
   let estado='ok', premios=[];
   if(v&&!v.telefono){
     const mias=db.jugadas.filter(x=>x.visitante===v.id&&!x.telefono);
-    if(!jug.bienvenida){
+    if(!v.regalo){ /* entró por la bolsa: no tenía regalo */ }
+    else if(!jug.bienvenida){
       mias.forEach(x=>x.telefono=tel);
       jug.bienvenida=new Date().toISOString();jug.jugadas+=mias.length;jug.premios+=mias.filter(x=>x.codigo).length;jug.tiros+=v.tiros;
       premios=mias.filter(x=>x.codigo).map(x=>({codigo:x.codigo,premio:x.premio,simbolo:x.simbolo,vence:x.vence}));

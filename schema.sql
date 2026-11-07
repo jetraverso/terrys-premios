@@ -22,7 +22,8 @@ alter table public.premios_config add column if not exists bono_cada_5      int 
 alter table public.premios_config add column if not exists bono_cada_10     int not null default 6;  -- tiros extra en los pedidos 10, 20, 30…
 alter table public.premios_config add column if not exists tiros_bienvenida int not null default 3;  -- tiros de regalo la primera vez (folleto), una vez por móvil
 alter table public.premios_config add column if not exists dias_ticket      int not null default 7;  -- antigüedad máxima del ticket que se acepta (días)
-alter table public.premios_config add column if not exists verificar_agora  boolean not null default false;  -- true = el ticket tiene que coincidir con las ventas de Ágora; false = se acepta y se controla a mano en caja
+alter table public.premios_config add column if not exists verificar_agora  boolean not null default false;
+alter table public.premios_config add column if not exists origenes_regalo  text[] not null default array['folleto'];  -- QR que dan los tiros de regalo (?o=folleto); el flyer de la bolsa no  -- true = el ticket tiene que coincidir con las ventas de Ágora; false = se acepta y se controla a mano en caja
 alter table public.premios_config alter column max_jugadas_dia set default 0;
 comment on column public.premios_config.max_jugadas_dia is 'Tope de tiros por móvil y por día (0 = sin tope)';
 insert into public.premios_config (id) values (1) on conflict (id) do nothing;
@@ -166,7 +167,11 @@ create table if not exists public.premios_visitantes (
   telefono   text references public.premios_jugadores (telefono) on update cascade on delete set null,
   registrado timestamptz
 );
-alter table public.premios_visitantes add column if not exists tiro_premio int;  -- cuál de los tiros de regalo gana (1, 2 o 3), al azar
+alter table public.premios_visitantes add column if not exists tiro_premio int;
+alter table public.premios_visitantes add column if not exists regalo boolean not null default false;  -- recibió los tiros de regalo (entró por el folleto)
+-- Los que ya estaban (de antes de esta regla) sí habían recibido el regalo
+update public.premios_visitantes v set regalo = true
+ where not regalo and (tiros > 0 or exists (select 1 from public.premios_jugadas j where j.visitante = v.id));  -- cuál de los tiros de regalo gana (1, 2 o 3), al azar
 alter table public.premios_jugadores add column if not exists bienvenida timestamptz;  -- cuándo cobró sus premios de bienvenida
 alter table public.premios_jugadas alter column telefono drop not null;                 -- vacío = jugada de bienvenida sin registrarse todavía
 alter table public.premios_jugadas add column if not exists visitante bigint references public.premios_visitantes (id) on delete cascade;
@@ -460,15 +465,27 @@ declare
   cfg public.premios_config;
   v   public.premios_visitantes;
   ori text := nullif(left(regexp_replace(coalesce(p_origen, ''), '[^a-zA-Z0-9_-]', '', 'g'), 40), '');
+  da  boolean;
 begin
   select * into cfg from premios_config where id = 1;
   if not found or not cfg.activo then return jsonb_build_object('estado', 'cerrado'); end if;
   if length(coalesce(p_secreto, '')) not between 20 and 100 then return jsonb_build_object('estado', 'error'); end if;
-  insert into premios_visitantes (huella, tiros, origen, tiro_premio)
-  values (md5(p_secreto), cfg.tiros_bienvenida, ori, 1 + floor(random() * greatest(cfg.tiros_bienvenida, 1))::int)
+  -- Los tiros de regalo son solo para quien entra por el folleto de la calle.
+  -- Por el flyer de la bolsa (ya compró) se juega con el ticket.
+  da := ori is not null and ori = any(cfg.origenes_regalo);
+  insert into premios_visitantes (huella, tiros, origen, tiro_premio, regalo)
+  values (md5(p_secreto), case when da then cfg.tiros_bienvenida else 0 end, ori,
+          1 + floor(random() * greatest(cfg.tiros_bienvenida, 1))::int, da)
   on conflict (huella) do nothing;
-  select * into v from premios_visitantes where huella = md5(p_secreto);
-  return jsonb_build_object('estado', 'ok', 'tiros', v.tiros, 'registrado', v.telefono is not null,
+  select * into v from premios_visitantes where huella = md5(p_secreto) for update;
+  -- Entró antes por la bolsa y ahora escanea el folleto (sin haberse registrado): recibe su regalo
+  if da and not v.regalo and v.telefono is null then
+    update premios_visitantes
+       set tiros = tiros + cfg.tiros_bienvenida, regalo = true,
+           tiro_premio = 1 + floor(random() * greatest(cfg.tiros_bienvenida, 1))::int
+     where id = v.id returning * into v;
+  end if;
+  return jsonb_build_object('estado', 'ok', 'tiros', v.tiros, 'registrado', v.telefono is not null, 'regalo', v.regalo,
     'pendientes', (select count(*) from premios_jugadas where visitante = v.id and telefono is null and codigo is not null));
 end $$;
 
@@ -559,7 +576,9 @@ begin
 
   -- Lo jugado en este móvil antes de registrarse
   if v.id is not null and v.telefono is null then
-    if jug.bienvenida is null then
+    if not v.regalo then
+      null;   -- entró por la bolsa: no tenía tiros de regalo, no se toca su bienvenida
+    elsif jug.bienvenida is null then
       update premios_jugadas set telefono = tel where visitante = v.id and telefono is null;
       select count(*), count(codigo) into n, g from premios_jugadas where visitante = v.id;
       update premios_jugadores
