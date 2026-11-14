@@ -9,10 +9,11 @@ Publicada en GitHub Pages:
 
 El subdominio está en los DNS de GoDaddy (registro CNAME `ruleta` → `jetraverso.github.io`) y configurado como dominio propio de GitHub Pages (archivo `CNAME`). Las direcciones viejas (`jetraverso.github.io/terrys-premios/…`) redirigen solas a las nuevas, así que los QR ya impresos siguen funcionando.
 
-Son dos páginas:
+Son tres páginas:
 
 - **`index.html`** — la ruleta, a donde lleva el QR. Pensada para el móvil.
-- **`local.html`** — para caja: canjear códigos, ver la base de jugadores (con CSV para Excel) y generar el QR del flyer. Pide email y contraseña.
+- **`local.html`** — para el admin: canjear códigos, ver la base de jugadores (con CSV para Excel) y generar el QR del flyer. Pide email y contraseña.
+- **`chequeos.html`** — la página que queda abierta en el local, con el usuario de caja (ver más abajo). Ver *Chequeos*.
 
 La ruleta usa el estilo de Terry's: blanco y negro, con el logo y los personajes de los stickers. La página del local mantiene el diseño de Administración (modo noche).
 
@@ -69,6 +70,18 @@ También se puede canjear sin escribir el código, desde las solapas de abajo:
 - **QR del flyer.**
 
 Arriba, las tarjetas con las jugadas de hoy y de la semana, jugadores, premios dados y canjeados.
+
+## Chequeos (`chequeos.html`)
+
+`https://ruleta.terrysburgers.com/chequeos.html` — para dejar abierta en el local con el **usuario de caja**. No da acceso a Administración ni a la base de clientes. Tiene tres solapas:
+
+- **Ruleta:** cómo viene el día (jugadas, premios ganados, canjeados, por canjear), el buscador para **canjear códigos** y lo canjeado hoy.
+- **Reservas:** las reservas de la web de los próximos 30 días (pendientes y confirmadas), agrupadas por día con personas y teléfono. Solo para mirar: confirmarlas o cambiarlas sigue siendo en Administración.
+- **Cierre de caja:** se carga uno por día y turno (día completo, mediodía o noche): quién cierra, ventas en efectivo y con tarjeta según el Z de Ágora, fondo inicial, efectivo contado (con ayuda para contar billetes y monedas), total del datáfono, pagos hechos con la caja, retiro y nota. Calcula solo el **efectivo esperado**, la **diferencia** (sobra / falta), la diferencia de tarjeta y lo que **queda en caja**, que se sugiere como fondo del cierre siguiente. Caja puede cargar y corregir los de los últimos 3 días; el admin cualquiera, y es el único que puede borrar.
+
+Se instala corriendo **`chequeos.sql`** en el SQL Editor (después de `schema.sql`). Entra cualquiera de `premios_staff` (caja o admin) y todo pasa por funciones `chequeos_…` de la base: el usuario de caja no puede leer ninguna tabla directo. Los cierres quedan en la tabla `caja_cierres`. Para sumar otro chequeo más adelante: otra función `chequeos_…` y otra solapa en la página.
+
+Para probarla sin base: `chequeos.html?demo` (como caja) o `chequeos.html?demo=admin`.
 
 ## Puesta en marcha (una sola vez)
 

@@ -322,7 +322,7 @@ async function entrar(){
 function pintarApp(){
   $('#app').innerHTML=`<div class="wrap">
     <header><div class="wordmark">TERRY'S <small>Premios · ${esCaja()?'caja':'local'}</small></div>
-      <div class="me">${esc(email)} ${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
+      <div class="me"><a href="chequeos.html">Chequeos →</a> ${esc(email)} ${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
     <section class="canje">
       <h2>Canjear un premio</h2>
       <div class="cf" id="cf" role="search"><input type="text" id="ci" name="terrys-premio-buscar" placeholder="T-XXXXX" readonly

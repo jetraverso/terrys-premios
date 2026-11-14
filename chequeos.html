@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terry's · Chequeos</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#141311">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23f1ede5'/%3E%3Ctext x='50' y='76' font-family='Impact,sans-serif' font-size='72' text-anchor='middle' fill='%23141311'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Página de chequeos del local: ruleta, próximas reservas y cierres de caja.
+   Entra el usuario de caja (o un admin). Misma estética que local.html. */
+:root{
+  color-scheme:dark;
+  --paper:#141311; --surface:#1d1b18; --surface-2:#26231f; --ink:#f1ede5; --ink-2:#c9c3b7; --muted:#8f887b; --line:#332f29; --line-2:#453f37;
+  --out:#e0693f; --out-soft:#40221a; --out-ink:#f4b9a1;
+  --accent:#5c9fc4; --accent-soft:#1b2f3b;
+  --ok:#5cb47f; --ok-soft:#1c3326; --warn:#e29a4a; --warn-soft:#3a3010; --danger:#e5665e; --gold:#f2c14e;
+  --display:"Bebas Neue","Impact","Arial Narrow",sans-serif; --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--out-ink)}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wordmark{font-family:var(--display);font-size:30px;letter-spacing:.04em;line-height:1;display:flex;align-items:baseline;gap:10px}
+.wordmark small{font-family:var(--body);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+.me{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lnk{background:none;border:0;color:var(--out-ink);text-decoration:underline;cursor:pointer;font-size:13px}
+.btn{padding:11px 16px;border-radius:10px;border:0;background:var(--out);color:#1a0f09;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2);font-weight:600}
+.btn.ok{background:var(--ok);color:#0d1a12}
+.btn.mini{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.55;cursor:default}
+input[type=text],input[type=email],input[type=password],input[type=date],select,textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--paper);width:100%}
+input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--out);outline-offset:1px}
+h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03em;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+
+/* Login */
+.login{max-width:360px;margin:12vh auto 0;padding:26px 22px;background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.login h1{font-family:var(--display);font-weight:400;font-size:40px;line-height:1}
+.login p{color:var(--ink-2);margin:6px 0 16px}
+.login label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.login .btn{width:100%;margin-top:18px}
+.msg{margin-top:12px;font-size:14px;color:var(--danger);min-height:1em}
+.msg.ok{color:var(--ok)}
+.login .olvide{display:block;margin:14px auto 0;background:none;border:0;color:var(--out-ink);text-decoration:underline;cursor:pointer;font-size:13px}
+
+/* Solapas */
+.tabs{display:flex;gap:4px;margin-top:18px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{padding:10px 14px;border:0;background:none;color:var(--muted);font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--out)}
+.tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--out);color:#1a0f09;font-size:12px;line-height:18px;text-align:center}
+.tabs .cnt:empty{display:none}
+.panel{padding-top:16px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 10px}
+.bar .n{color:var(--muted);font-size:13px;margin-left:auto}
+
+/* Tarjetas */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.card .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.card .v{font-family:var(--display);font-size:34px;line-height:1;margin-top:4px}
+.card .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+
+/* Tablas */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--surface)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.wrapc{white-space:normal;min-width:180px;max-width:360px;color:var(--ink-2)}
+td.act{text-align:right}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.pill.si{background:var(--ok-soft);color:var(--ok)} .pill.no{background:var(--surface-2);color:var(--muted)}
+.pill.gan{background:var(--warn-soft);color:var(--gold)} .pill.ven{background:var(--out-soft);color:var(--out-ink)}
+.pos{color:var(--ok)} .neg{color:var(--danger)}
+.tacho{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:none;color:var(--muted);cursor:pointer;vertical-align:middle}
+.tacho:hover,.tacho:focus-visible{color:var(--danger);border-color:var(--danger);background:var(--out-soft)}
+
+/* Canje */
+.canje{margin-top:16px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.canje .cf{display:flex;gap:8px;margin-top:10px}
+.canje input{font-family:var(--display);font-size:30px;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
+.canje input::placeholder{letter-spacing:.08em;opacity:.35}
+.res{margin-top:14px}
+.tk{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:14px 16px;border-radius:12px;border:2px solid var(--line-2);background:var(--paper)}
+.tk.valido{border-color:var(--ok)} .tk.vencido{border-color:var(--warn)} .tk.usado{opacity:.9}
+.tk .st{grid-column:1/-1;font-family:var(--display);font-size:28px;letter-spacing:.04em;line-height:1}
+.tk.valido .st{color:var(--ok)} .tk.vencido .st{color:var(--warn)} .tk.usado .st{color:var(--muted)}
+.tk .prem{grid-column:1/-1;font-size:20px;font-weight:700;margin-bottom:6px}
+.tk dt{color:var(--muted)} .tk dd{font-weight:600}
+.tk .acts{grid-column:1/-1;display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.nf{padding:12px 14px;border-radius:12px;background:var(--out-soft);color:var(--out-ink)}
+
+/* Un bloque por día */
+.dias{display:grid;gap:8px}
+.dia{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.dia>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;user-select:none}
+.dia>summary::-webkit-details-marker{display:none}
+.dia>summary::before{content:"";flex:none;width:0;height:0;border:5px solid transparent;border-left:7px solid var(--muted);transition:transform .15s}
+.dia[open]>summary::before{transform:rotate(90deg) translateX(2px)}
+.dia>summary b{font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.04em}
+.dia>summary .hoy{background:var(--out);color:#1a0f09;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700}
+.dia>summary .r{margin-left:auto;color:var(--muted);font-size:13px;text-align:right}
+.dia[open]>summary{border-bottom:1px solid var(--line)}
+.dia .tw{border:0;border-radius:0}
+.aviso{padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);font-size:14px;margin-bottom:12px}
+
+/* Cierre de caja */
+.cierre{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:820px){.cierre{grid-template-columns:1fr}}
+.caja{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.caja h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+.caja h3:first-of-type{margin-top:12px}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.campo label{display:block;font-size:13px;color:var(--ink-2);margin-bottom:4px;font-weight:600}
+.campo .ayuda{font-size:12px;color:var(--muted);margin-top:3px}
+.campo input.eur{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.estado-form{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+.estado-form:empty{display:none}
+.billetes{margin-top:8px;border:1px dashed var(--line-2);border-radius:12px;padding:4px 12px}
+.billetes>summary{cursor:pointer;padding:6px 0;font-size:13px;color:var(--out-ink);font-weight:600}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;padding:6px 0 10px}
+.bgrid label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
+.bgrid label span{min-width:44px;text-align:right;font-weight:700;color:var(--ink)}
+.bgrid input{padding:6px 8px;text-align:right}
+.resumen{position:sticky;top:12px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.resumen dl{display:grid;grid-template-columns:1fr auto;gap:6px 10px;margin-top:10px;font-size:14px}
+.resumen dt{color:var(--ink-2)} .resumen dd{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.resumen hr{grid-column:1/-1;border:0;border-top:1px solid var(--line);margin:4px 0}
+.veredicto{margin-top:14px;padding:12px;border-radius:12px;text-align:center;font-family:var(--display);font-size:26px;letter-spacing:.03em;line-height:1.05}
+.veredicto small{display:block;font-family:var(--body);font-size:13px;letter-spacing:0;margin-top:4px;font-weight:600}
+.veredicto.ok{background:var(--ok-soft);color:var(--ok)} .veredicto.mal{background:var(--out-soft);color:var(--danger)} .veredicto.nada{background:var(--surface-2);color:var(--muted)}
+.resumen .btn{width:100%;margin-top:14px}
+
+.demo{position:fixed;left:50%;bottom:0;transform:translateX(-50%);background:var(--out-soft);color:var(--out-ink);font-size:12px;padding:3px 10px;border-radius:8px 8px 0 0;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Los mismos valores que en local.html. Con ?demo en la dirección se prueba sin base (datos de este navegador).
+const SUPABASE_URL='https://cgkpklimplpedgxbgzvu.supabase.co';
+const SUPABASE_KEY='sb_publishable_yG1hrdoynoxBBYh9LX7QpA_we_bb_qC';
+
+const QS=new URLSearchParams(location.search);
+const DEMO=QS.has('demo'), SB=!DEMO&&!!(SUPABASE_URL&&SUPABASE_KEY);
+// Misma sesión que local.html (mismo storageKey): si ya entraste ahí, acá también.
+const sbc=SB?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'terrys-premios-local',flowType:'implicit'}}):null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoyISO=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const sumarDias=(d,n)=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const fFecha=d=>d?new Date(d.length===10?d+'T12:00:00':d).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Madrid'}):'';
+const fHora=d=>d?new Date(d).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):'';
+const soloHora=d=>d?new Date(d).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}):'';
+const nombreDia=d=>{const t=new Date(d+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});return t.charAt(0).toUpperCase()+t.slice(1)};
+const telBonito=t=>{const m=String(t||'').match(/^\+34\s?(\d{3})\s?(\d{3})\s?(\d{3})$/);return m?`${m[1]} ${m[2]} ${m[3]}`:t};
+const normCodigo=c=>{const x=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(/^[A-Z0-9]{5}$/.test(x))return'T-'+x;if(/^T[A-Z0-9]{5}$/.test(x))return'T-'+x.slice(1);return null};
+const num=v=>{const n=parseFloat(String(v??'').replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.'));return isFinite(n)&&n>0?Math.round(n*100)/100:0};
+const eur=n=>Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const eurS=n=>(n>0.004?'+':n<-0.004?'−':'')+eur(Math.abs(n));
+const TURNOS={dia:'Día completo',mediodia:'Mediodía',noche:'Noche'}, ORDEN={mediodia:1,dia:2,noche:3};
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+if(DEMO)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo · datos de este navegador</div>');
+const TACHO='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// ---------- Datos: todo pasa por funciones de la base (chequeos.sql) ----------
+async function rpc(fn,args){
+  if(DEMO)return demoRpc(fn,args||{});
+  const {data,error}=await sbc.rpc(fn,args||{});
+  if(error)throw error;
+  return data;
+}
+// Modo demo: imita las funciones con datos guardados en este navegador
+const dLeer=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const dGuardar=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+function calcCierre(c){const esperado=c.fondo_inicial+c.ventas_efectivo-c.pagos_efectivo;
+  return{...c,esperado,dif_efectivo:c.efectivo_contado-esperado,dif_tarjeta:c.tarjeta_datafono-c.ventas_tarjeta,queda:c.efectivo_contado-c.retiro}}
+function demoRpc(fn,a){
+  const hoy=hoyISO(), db=dLeer('tp_demo_db',{jugadores:{},jugadas:[],pedidos:[]}), dia=x=>new Date(x).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+  const J=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));
+  if(fn==='chequeos_ruleta'){
+    const pend=J.filter(x=>x.codigo&&x.telefono&&!x.canjeado&&x.vence>=hoy);
+    return{jugadas_hoy:J.filter(x=>dia(x.creado)===hoy).length,premios_hoy:J.filter(x=>x.codigo&&dia(x.creado)===hoy).length,
+      canjeados_hoy:J.filter(x=>x.canjeado&&dia(x.canjeado)===hoy).length,por_canjear:pend.length,vencen_7:pend.filter(x=>x.vence<=sumarDias(hoy,7)).length,
+      tickets_hoy:(db.pedidos||[]).filter(x=>x.ticket!=null&&dia(x.creado)===hoy).length,
+      canjes_hoy:J.filter(x=>x.canjeado&&dia(x.canjeado)===hoy).sort((a,b)=>b.canjeado.localeCompare(a.canjeado))};
+  }
+  if(fn==='premios_buscar_codigo'){const j=J.find(x=>x.codigo===a.p_codigo);return j?{...j,registrado:!!j.telefono,tel3:String(j.telefono||'').slice(-3)}:null}
+  if(fn==='premios_canjear'){const j=db.jugadas.find(x=>x.codigo===a.p_codigo);if(!j)return{estado:'no_existe'};if(j.canjeado)return{estado:'ya_canjeado'};if(j.vence<hoy)return{estado:'vencido'};
+    j.canjeado=new Date().toISOString();j.canjeado_por='demo';dGuardar('tp_demo_db',db);return{estado:'ok'}}
+  if(fn==='premios_deshacer_canje'){const j=db.jugadas.find(x=>x.codigo===a.p_codigo);if(j){j.canjeado=null;j.canjeado_por=null;dGuardar('tp_demo_db',db)}return{estado:'ok'}}
+  if(fn==='chequeos_reservas'){
+    const r=(d,h,p,n,t,e,c)=>({id:Math.random(),fecha:sumarDias(hoy,d),hora:h,personas:p,nombre:n,telefono:t,estado:e,comentario:c,nota:null});
+    return[r(0,'13:30',4,'Marta Gil','+34611222333','confirmada','Con carrito de bebé'),r(0,'21:00',8,'Cumple Leo','+34622333444','confirmada','Traen torta'),
+      r(0,'21:30',2,'Pau','+34633444555','pendiente',null),r(1,'14:00',3,'Iñaki','+34644555666','pendiente','Uno celíaco'),r(3,'20:30',12,'Empresa Nubo','+34655666777','confirmada','Terraza si se puede')];
+  }
+  const C=dLeer('tp_demo_cierres',[]);
+  if(fn==='chequeos_cierres')return{cierres:C.map(calcCierre).sort((x,y)=>y.fecha.localeCompare(x.fecha)||ORDEN[y.turno]-ORDEN[x.turno]),admin:QS.get('demo')==='admin'};
+  if(fn==='chequeos_guardar_cierre'){
+    const p=a.p, esAdm=QS.get('demo')==='admin';
+    if(!p.fecha||p.fecha>hoy)throw new Error('Fecha no válida');
+    if(!esAdm&&p.fecha<sumarDias(hoy,-2))throw new Error('Solo se pueden cargar o corregir cierres de los últimos 3 días');
+    if(String(p.responsable||'').trim().length<2)throw new Error('Falta quién hizo el cierre');
+    const k=['fondo_inicial','ventas_efectivo','ventas_tarjeta','efectivo_contado','tarjeta_datafono','pagos_efectivo','retiro'];
+    const prev=C.find(x=>x.fecha===p.fecha&&x.turno===p.turno), now=new Date().toISOString();
+    const c={...(prev||{id:Date.now(),creado:now,creado_por:'demo'}),fecha:p.fecha,turno:p.turno,responsable:p.responsable.trim(),pagos_detalle:p.pagos_detalle||null,nota:p.nota||null,desglose:p.desglose||null,actualizado:now,actualizado_por:'demo'};
+    k.forEach(x=>c[x]=num(p[x]));
+    dGuardar('tp_demo_cierres',[...C.filter(x=>x!==prev),c]);return calcCierre(c);
+  }
+  if(fn==='chequeos_borrar_cierre'){dGuardar('tp_demo_cierres',C.filter(x=>x.id!==a.p_id));return{estado:'ok'}}
+  throw new Error('demo: '+fn);
+}
+
+// ---------- Entrada ----------
+let email='', esAdmin=false, tab=dLeer('chq_tab','ruleta');
+function pintarLogin(msg=''){
+  $('#app').innerHTML=`<form class="login" id="lf">
+    <h1>Terry's · Chequeos</h1><p>Ruleta, próximas reservas y cierres de caja del local.</p>
+    <label for="le">Email</label><input type="email" id="le" autocomplete="username" required>
+    <label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password" required>
+    <button class="btn" id="lb">Entrar</button><div class="msg" id="lm">${esc(msg)}</div>
+    <button type="button" class="olvide" id="lo">¿Olvidaste tu contraseña?</button></form>`;
+  $('#lo').onclick=async()=>{
+    const em=$('#le').value.trim(), m=$('#lm');m.className='msg';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){m.textContent='Escribe tu email arriba y vuelve a tocar "¿Olvidaste tu contraseña?".';$('#le').focus();return}
+    $('#lo').disabled=true;
+    // El link del mail abre local.html (la dirección que ya está autorizada en Supabase); de ahí hay un link a Chequeos.
+    const {error}=await sbc.auth.resetPasswordForEmail(em,{redirectTo:new URL('local.html',location.href).href});
+    $('#lo').disabled=false;
+    if(error){m.textContent=/rate|seconds/i.test(error.message)?'Espera un minuto antes de pedir otro mail.':'No se pudo mandar el mail: '+error.message;return}
+    m.className='msg ok';m.textContent='Te mandamos un mail a '+em+'. Abre el link desde este mismo dispositivo para poner una contraseña nueva.';
+  };
+  $('#lf').onsubmit=async e=>{
+    e.preventDefault();$('#lb').disabled=true;$('#lm').textContent='';
+    const {error}=await sbc.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});
+    if(error){$('#lb').disabled=false;$('#lm').textContent='Email o contraseña incorrectos.';return}
+    entrar();
+  };
+}
+async function entrar(){
+  if(SB){
+    const {data:{session}}=await sbc.auth.getSession();
+    if(!session)return pintarLogin();
+    const {data:ok}=await sbc.rpc('premios_es_staff');
+    if(!ok){await sbc.auth.signOut();return pintarLogin('Ese usuario no está en la lista del local (premios_staff).')}
+    email=session.user.email;
+    try{esAdmin=(await rpc('premios_mi_rol'))==='admin'}catch(e){esAdmin=false}
+  }else{email='demo';esAdmin=QS.get('demo')==='admin'}
+  pintarApp();
+}
+
+function pintarApp(){
+  $('#app').innerHTML=`<div class="wrap">
+    <header><div class="wordmark">TERRY'S <small>Chequeos${esAdmin?'':' · caja'}</small></div>
+      <div class="me">${esAdmin?'<a href="local.html">Premios (admin)</a>':''}<span>${esc(email)}</span>${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-t="ruleta">Ruleta<span class="cnt" id="cntRul"></span></button>
+      <button role="tab" data-t="reservas">Reservas<span class="cnt" id="cntRes"></span></button>
+      <button role="tab" data-t="cierres">Cierre de caja</button>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>`;
+  if(SB)$('#salir').onclick=async()=>{await sbc.auth.signOut();pintarLogin()};
+  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+    if(tab==='cierres'&&b.dataset.t!=='cierres'&&formSucio&&!confirm('Hay un cierre a medio cargar sin guardar. ¿Salir igual?'))return;
+    tab=b.dataset.t;dGuardar('chq_tab',tab);pintarTab()});
+  pintarTab();
+  // Queda abierta todo el día: refresca sola (menos el cierre, para no pisar lo que se está escribiendo)
+  clearInterval(pintarApp.reloj);
+  pintarApp.reloj=setInterval(()=>{if(document.visibilityState!=='visible')return;
+    if(tab==='ruleta')cargarRuleta();else if(tab==='reservas')cargarReservas();else contarReservas()},90000);
+  contarReservas();
+}
+function pintarTab(){
+  if(!['ruleta','reservas','cierres'].includes(tab))tab='ruleta';
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab));
+  ({ruleta:tabRuleta,reservas:tabReservas,cierres:tabCierres})[tab]();
+}
+
+// ---------- Ruleta ----------
+function tabRuleta(){
+  $('#panel').innerHTML=`<div class="cards" id="cards"></div>
+    <section class="canje">
+      <h2>Canjear un premio</h2>
+      <div class="cf" role="search"><input type="text" id="ci" name="terrys-premio-buscar" placeholder="T-XXXXX" readonly
+        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search" maxlength="10"
+        aria-label="Código del premio" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"><button class="btn" type="button" id="cb">Buscar</button></div>
+      <div class="res" id="cr"></div>
+    </section>
+    <div class="bar"><h2>Canjeados hoy</h2><span class="n" id="nHoy"></span></div><div id="hoy"></div>`;
+  // Sin <form> y sin foco automático: así los gestores de contraseñas no se meten en el campo
+  const ci=$('#ci'), soltar=()=>ci.removeAttribute('readonly');
+  ci.addEventListener('pointerdown',soltar);ci.addEventListener('focus',soltar);
+  ci.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();verCodigo(ci.value)}});
+  $('#cb').onclick=()=>verCodigo(ci.value);
+  cargarRuleta();
+}
+async function cargarRuleta(){
+  let r;try{r=await rpc('chequeos_ruleta')}catch(e){if($('#cards'))$('#cards').innerHTML=`<div class="nf">No se pudo cargar: ${esc(e.message)}</div>`;return}
+  if(tab!=='ruleta'||!$('#cards'))return;
+  $('#cntRul').textContent=r.por_canjear||'';
+  const c=(k,v,s)=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  $('#cards').innerHTML=c('Jugadas hoy',r.jugadas_hoy,`${r.tickets_hoy} ${r.tickets_hoy===1?'ticket cargado':'tickets cargados'}`)+c('Premios ganados hoy',r.premios_hoy)
+    +c('Canjeados hoy',r.canjeados_hoy)+c('Por canjear',r.por_canjear,r.vencen_7?`${r.vencen_7} vencen esta semana`:'');
+  const H=r.canjes_hoy||[];
+  $('#nHoy').textContent=H.length?`${H.length} ${H.length===1?'premio':'premios'}`:'';
+  $('#hoy').innerHTML=H.length?`<div class="tw"><table><thead><tr><th>Hora</th><th>Premio</th><th>Cliente</th><th>Código</th><th>Origen</th><th>Lo entregó</th></tr></thead><tbody>${
+    H.map(x=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td>${esc(x.premio)}</td><td>${esc(x.nombre||'')}</td>
+      <td class="code"><a href="#" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a></td><td>${x.ticket!=null?'Ticket '+esc(x.ticket):x.pedido?'#'+esc(x.pedido):'Bienvenida'}</td><td>${esc(x.canjeado_por||'')}</td></tr>`).join('')
+  }</tbody></table></div>`:'<div class="empty">Hoy todavía no se canjeó ningún premio.</div>';
+  document.querySelectorAll('#hoy a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+}
+async function verCodigo(raw,msg){
+  const cod=normCodigo(raw), box=$('#cr');
+  if(!cod){box.innerHTML='<div class="nf">El código tiene 5 letras o números, por ejemplo T-K7P3Q.</div>';return}
+  $('#ci').value=cod;
+  let j;try{j=await rpc('premios_buscar_codigo',{p_codigo:cod})}catch(err){box.innerHTML=`<div class="nf">No se pudo buscar: ${esc(err.message)}</div>`;return}
+  if(!j){box.innerHTML=`<div class="nf">No existe ningún premio con el código <b>${esc(cod)}</b>. Revisá que esté bien escrito.</div>`;return}
+  const vencido=!j.canjeado&&j.vence<hoyISO(), sinReg=!j.registrado;
+  const cls=j.canjeado?'usado':(vencido||sinReg)?'vencido':'valido';
+  const st=j.canjeado?`Ya canjeado el ${fHora(j.canjeado)}`:sinReg?'Sin registrar: el cliente todavía no se registró':vencido?`Vencido el ${fFecha(j.vence)}`:'Válido ✓';
+  const recien=j.canjeado&&(Date.now()-new Date(j.canjeado))<12*3600e3;
+  const origen=j.ticket!=null?`Ticket ${esc(j.ticket)}${j.fecha_ticket?' del '+fFecha(j.fecha_ticket):''}`:j.pedido?`Pedido #${esc(j.pedido)}`:'Bienvenida (folleto)';
+  box.innerHTML=`<div class="tk ${cls}">
+    <div class="st">${esc(msg||st)}</div><div class="prem">${esc(j.premio)}</div>
+    <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
+    <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
+    <dt>Móvil</dt><dd>${j.registrado?`··· ${esc(j.tel3||'')} <span class="sub" style="font-weight:400">(pedile que te diga los últimos 3)</span>`:'—'}</dd>
+    <dt>Origen</dt><dd>${origen}</dd>
+    <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
+    <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
+    ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
+    <div class="acts">
+      ${cls==='valido'?'<button class="btn ok" id="entregar">Entregar y marcar canjeado</button>':''}
+      ${recien?'<button class="btn sec" id="deshacer">Deshacer canje</button>':''}
+      <button class="btn sec" id="limpiar">Otro código</button>
+    </div></div>`;
+  $('#limpiar').onclick=()=>{box.innerHTML='';$('#ci').value=''};
+  if($('#entregar'))$('#entregar').onclick=async()=>{
+    if(!confirm(`¿Entregar "${j.premio}" a ${j.nombre}? Queda marcado como canjeado.`))return;
+    $('#entregar').disabled=true;
+    let r;try{r=await rpc('premios_canjear',{p_codigo:cod})}catch(err){toast('Error: '+err.message);$('#entregar').disabled=false;return}
+    await cargarRuleta();
+    verCodigo(cod,{ok:'Canjeado ✓ — ya podés entregarlo',ya_canjeado:'Ojo: ya estaba canjeado',vencido:'Vencido: no se puede canjear',no_existe:'No existe'}[r.estado]);
+  };
+  if($('#deshacer'))$('#deshacer').onclick=async()=>{
+    if(!confirm('¿Deshacer el canje? El premio vuelve a quedar disponible.'))return;
+    try{await rpc('premios_deshacer_canje',{p_codigo:cod})}catch(err){toast('Error: '+err.message);return}
+    await cargarRuleta();verCodigo(cod,'Canje deshecho: vuelve a estar disponible');
+  };
+}
+
+// ---------- Reservas ----------
+let RES=[];
+const abiertos={};
+async function contarReservas(){
+  try{RES=await rpc('chequeos_reservas',{p_dias:30})||[]}catch(e){return}
+  const n=RES.filter(r=>r.fecha===hoyISO()).length, c=$('#cntRes');if(c)c.textContent=n||'';
+}
+function tabReservas(){
+  $('#panel').innerHTML=`<div class="aviso">Las reservas de la web de los próximos 30 días (pendientes y confirmadas). Desde acá solo se miran: confirmarlas, rechazarlas o cambiarlas se hace en Administración.</div>
+    <div id="res"><div class="empty">Cargando…</div></div>`;
+  cargarReservas();
+}
+async function cargarReservas(){
+  try{RES=await rpc('chequeos_reservas',{p_dias:30})||[]}catch(e){if($('#res'))$('#res').innerHTML=`<div class="nf">No se pudo cargar: ${esc(e.message)}</div>`;return}
+  const hoy=hoyISO(), c=$('#cntRes');if(c)c.textContent=RES.filter(r=>r.fecha===hoy).length||'';
+  const cont=$('#res');if(tab!=='reservas'||!cont)return;
+  const g=new Map();RES.forEach(r=>{if(!g.has(r.fecha))g.set(r.fecha,[]);g.get(r.fecha).push(r)});
+  if(!g.has(hoy))g.set(hoy,[]);
+  const dias=[...g.keys()].sort(), manana=sumarDias(hoy,1);
+  cont.className='dias';
+  cont.innerHTML=dias.map(d=>{
+    const L=g.get(d), pers=L.reduce((s,r)=>s+r.personas,0), open=d in abiertos?abiertos[d]:(d===hoy||d===manana);
+    const pend=L.filter(r=>r.estado==='pendiente').length;
+    return`<details class="dia" data-d="${d}"${open?' open':''}><summary><b>${esc(nombreDia(d))}</b>${d===hoy?'<span class="hoy">Hoy</span>':d===manana?'<span class="pill no">Mañana</span>':''}
+      <span class="r">${L.length?`${L.length} ${L.length===1?'reserva':'reservas'} · ${pers} personas${pend?` · ${pend} sin confirmar`:''}`:''}</span></summary>${
+      L.length?`<div class="tw"><table><thead><tr><th>Hora</th><th class="num">Personas</th><th>Nombre</th><th>Teléfono</th><th>Estado</th><th>Comentario</th></tr></thead><tbody>${
+        L.map(r=>`<tr><td><b>${esc(r.hora)}</b></td><td class="num"><b>${r.personas}</b></td><td>${esc(r.nombre)}</td>
+          <td><a href="tel:${esc(String(r.telefono).replace(/[^\d+]/g,''))}">${esc(telBonito(r.telefono))}</a></td>
+          <td><span class="pill ${r.estado==='confirmada'?'si':'gan'}">${r.estado==='confirmada'?'Confirmada':'Sin confirmar'}</span></td>
+          <td class="wrapc">${esc(r.comentario||'')}${r.nota?`<div class="sub">Nota: ${esc(r.nota)}</div>`:''}</td></tr>`).join('')
+      }</tbody></table></div>`:'<div class="empty">Hoy no hay reservas de la web.</div>'}</details>`;
+  }).join('');
+  cont.querySelectorAll('details.dia').forEach(el=>el.addEventListener('toggle',()=>{abiertos[el.dataset.d]=el.open}));
+}
+
+// ---------- Cierre de caja ----------
+let CIERRES=[], formSucio=false, sel={};
+const BILLETES=[200,100,50,20,10,5,2,1,0.5,0.2,0.1,0.05,0.02,0.01];
+const CAMPOS=[
+  ['Según Ágora (cierre Z)',[['ventas_efectivo','Ventas en efectivo'],['ventas_tarjeta','Ventas con tarjeta']]],
+  ['Caja',[['fondo_inicial','Fondo inicial','Con lo que abrió la caja'],['efectivo_contado','Efectivo contado','Todo lo que hay en la caja al cerrar, fondo incluido'],['tarjeta_datafono','Total del datáfono','El cierre que imprime el datáfono']]],
+  ['Salidas',[['pagos_efectivo','Pagos con efectivo de la caja','Proveedores, compras, etc.'],['retiro','Retiro','Lo que se saca y se guarda / va al banco']]],
+];
+function tabCierres(){
+  const hoy=hoyISO(), min=esAdmin?'':sumarDias(hoy,-2);
+  $('#panel').innerHTML=`<div class="cierre">
+    <form class="caja" id="cf" autocomplete="off">
+      <h2>Cargar cierre</h2>
+      <div class="campos" style="margin-top:12px">
+        <div class="campo"><label for="f_fecha">Fecha</label><input type="date" id="f_fecha" value="${hoy}" max="${hoy}" ${min?`min="${min}"`:''} required></div>
+        <div class="campo"><label for="f_turno">Turno</label><select id="f_turno">${Object.entries(TURNOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="campo"><label for="f_responsable">Quién cierra</label><input type="text" id="f_responsable" maxlength="60" placeholder="Tu nombre" required></div>
+      </div>
+      <div class="estado-form" id="estadoForm"></div>
+      ${CAMPOS.map(([t,fs])=>`<h3>${t}</h3><div class="campos">${fs.map(([k,l,a])=>`<div class="campo"><label for="f_${k}">${l}</label>
+        <input type="text" class="eur" id="f_${k}" inputmode="decimal" placeholder="0,00">${a?`<div class="ayuda">${a}</div>`:''}</div>`).join('')}</div>${
+        t==='Caja'?`<details class="billetes" id="billetes"><summary>Contar por billetes y monedas</summary>
+          <div class="bgrid">${BILLETES.map(b=>`<label><span>${b>=1?b+' €':Math.round(b*100)+' c'}</span>×<input type="text" inputmode="numeric" data-b="${b}" placeholder="0"></label>`).join('')}</div>
+          <div class="sub" style="padding-bottom:8px">Total contado: <b id="btot">0,00 €</b> — se pasa solo a "Efectivo contado".</div></details>`:''}`).join('')}
+      <div class="campos" style="margin-top:10px"><div class="campo"><label for="f_pagos_detalle">Detalle de los pagos</label><input type="text" id="f_pagos_detalle" maxlength="500" placeholder="Ej.: hielo 20 €, pan 35 €"></div></div>
+      <h3>Nota</h3><textarea id="f_nota" rows="2" maxlength="1000" placeholder="Algo para avisar (opcional)"></textarea>
+    </form>
+    <aside class="resumen" id="resumen"></aside>
+  </div>
+  <div class="bar"><h2>Cierres anteriores</h2><span class="n" id="nC"></span></div><div id="lista"><div class="empty">Cargando…</div></div>`;
+  try{$('#f_responsable').value=localStorage.getItem('chq_responsable')||''}catch{}
+  const f=$('#cf');
+  f.addEventListener('input',e=>{
+    if(e.target.dataset.b!==undefined){const t=sumaBilletes();$('#btot').textContent=eur(t);$('#f_efectivo_contado').value=t?t.toFixed(2).replace('.',','):''}
+    if(e.target.id!=='f_fecha'&&e.target.id!=='f_turno')formSucio=true;
+    calcular();
+  });
+  $('#f_fecha').onchange=$('#f_turno').onchange=()=>{
+    if(formSucio&&!confirm('Lo que cargaste para este cierre todavía no está guardado. ¿Cambiar de día/turno igual?')){
+      $('#f_fecha').value=sel.fe;$('#f_turno').value=sel.tu;return}   // vuelve al que estaba
+    llenarForm();
+  };
+  f.onsubmit=e=>{e.preventDefault();guardarCierre()};
+  cargarCierres(true);
+}
+const sumaBilletes=()=>Math.round([...document.querySelectorAll('[data-b]')].reduce((s,i)=>s+(parseInt(i.value,10)||0)*Number(i.dataset.b),0)*100)/100;
+function leerForm(){
+  const o={fecha:$('#f_fecha').value,turno:$('#f_turno').value,responsable:$('#f_responsable').value.trim(),pagos_detalle:$('#f_pagos_detalle').value.trim(),nota:$('#f_nota').value.trim()};
+  CAMPOS.forEach(([,fs])=>fs.forEach(([k])=>o[k]=num($('#f_'+k).value)));
+  const d={};document.querySelectorAll('[data-b]').forEach(i=>{const n=parseInt(i.value,10);if(n>0)d[i.dataset.b]=n});
+  o.desglose=Object.keys(d).length?d:null;
+  return o;
+}
+// El cierre anterior a (fecha, turno): su "queda en caja" es el fondo con que se abre
+const anterior=(fe,tu)=>CIERRES.find(c=>c.fecha<fe||(c.fecha===fe&&ORDEN[c.turno]<ORDEN[tu]));
+const existente=(fe,tu)=>CIERRES.find(c=>c.fecha===fe&&c.turno===tu);
+const editable=fe=>esAdmin||fe>=sumarDias(hoyISO(),-2);
+function llenarForm(){
+  const fe=$('#f_fecha').value, tu=$('#f_turno').value, c=existente(fe,tu), ant=anterior(fe,tu);
+  sel={fe,tu};
+  const pon=(k,v)=>{$('#f_'+k).value=v?Number(v).toFixed(2).replace('.',','):''};
+  CAMPOS.forEach(([,fs])=>fs.forEach(([k])=>pon(k,c?c[k]:0)));
+  if(!c&&ant)pon('fondo_inicial',ant.queda);
+  $('#f_pagos_detalle').value=c?c.pagos_detalle||'':'';$('#f_nota').value=c?c.nota||'':'';
+  if(c)$('#f_responsable').value=c.responsable;
+  document.querySelectorAll('[data-b]').forEach(i=>i.value=c&&c.desglose&&c.desglose[i.dataset.b]||'');
+  $('#btot').textContent=eur(sumaBilletes());$('#billetes').open=!!(c&&c.desglose);
+  $('#estadoForm').innerHTML=c?`Este cierre ya está guardado (${esc(c.actualizado_por||c.creado_por||'')}, ${fHora(c.actualizado)}). Si cambiás algo y guardás, se corrige.`
+    :ant?`Fondo inicial sugerido: lo que quedó en caja en el cierre anterior (${fFecha(ant.fecha)}, ${TURNOS[ant.turno].toLowerCase()}).`:'';
+  formSucio=false;calcular();
+}
+function calcular(){
+  const o=leerForm(), esperado=o.fondo_inicial+o.ventas_efectivo-o.pagos_efectivo, dif=o.efectivo_contado-esperado, difT=o.tarjeta_datafono-o.ventas_tarjeta, queda=o.efectivo_contado-o.retiro;
+  const hay=o.efectivo_contado>0||o.ventas_efectivo>0, c=existente(o.fecha,o.turno), puede=editable(o.fecha);
+  const ver=(d,que)=>Math.abs(d)<0.005?'':d>0?` sobran ${eur(d)}`:` faltan ${eur(-d)}`;
+  $('#resumen').innerHTML=`<h2>Resumen</h2><dl>
+    <dt>Fondo inicial</dt><dd>${eur(o.fondo_inicial)}</dd>
+    <dt>+ Ventas en efectivo</dt><dd>${eur(o.ventas_efectivo)}</dd>
+    <dt>− Pagos con la caja</dt><dd>${eur(o.pagos_efectivo)}</dd><hr>
+    <dt><b>Efectivo esperado</b></dt><dd><b>${eur(esperado)}</b></dd>
+    <dt>Efectivo contado</dt><dd>${eur(o.efectivo_contado)}</dd><hr>
+    <dt>Datáfono − Ágora tarjeta</dt><dd class="${Math.abs(difT)<0.005?'':'neg'}">${eurS(difT)}</dd>
+    <dt>Retiro</dt><dd>${eur(o.retiro)}</dd>
+    <dt><b>Queda en caja</b></dt><dd><b>${eur(queda)}</b></dd></dl>
+    <div class="veredicto ${!hay?'nada':Math.abs(dif)<0.5&&Math.abs(difT)<0.5?'ok':'mal'}">${!hay?'Cargá los importes':Math.abs(dif)<0.005?'Cuadra el efectivo ✓':eurS(dif)}
+      <small>${!hay?'El resumen se calcula solo.':Math.abs(dif)<0.005?(Math.abs(difT)<0.005?'Tarjeta también cuadra':`Ojo: tarjeta ${eurS(difT)} contra Ágora`):`En efectivo${ver(dif)}${Math.abs(difT)<0.005?'':` · tarjeta ${eurS(difT)}`}`}</small></div>
+    <button class="btn ok" form="cf" id="guardar" ${puede?'':'disabled'}>${c?'Guardar corrección':'Guardar cierre'}</button>
+    ${puede?'':'<div class="sub" style="margin-top:8px">Solo se pueden cargar o corregir cierres de los últimos 3 días.</div>'}`;
+}
+async function guardarCierre(){
+  const o=leerForm();
+  if(o.responsable.length<2){toast('Escribe quién hace el cierre');$('#f_responsable').focus();return}
+  if(!o.efectivo_contado&&!o.ventas_efectivo&&!o.ventas_tarjeta&&!o.tarjeta_datafono){toast('Faltan los importes');$('#f_ventas_efectivo').focus();return}
+  const c=existente(o.fecha,o.turno);
+  if(c&&!confirm(`Ya hay un cierre del ${fFecha(o.fecha)} (${TURNOS[o.turno].toLowerCase()}). ¿Reemplazarlo con lo que cargaste ahora?`))return;
+  $('#guardar').disabled=true;
+  try{localStorage.setItem('chq_responsable',o.responsable)}catch{}
+  let r;try{r=await rpc('chequeos_guardar_cierre',{p:o})}catch(e){toast('No se guardó: '+e.message);$('#guardar').disabled=false;return}
+  formSucio=false;
+  toast(Math.abs(r.dif_efectivo)<0.005?'Cierre guardado ✓ — cuadra':`Cierre guardado ✓ — ${r.dif_efectivo>0?'sobran':'faltan'} ${eur(Math.abs(r.dif_efectivo))}`);
+  await cargarCierres(false);
+}
+async function cargarCierres(primeraVez){
+  let r;try{r=await rpc('chequeos_cierres',{p_dias:esAdmin?400:60})}catch(e){$('#lista').innerHTML=`<div class="nf">No se pudo cargar: ${esc(e.message)}</div>`;return}
+  CIERRES=r.cierres||[];
+  if(tab!=='cierres'||!$('#lista'))return;
+  if(primeraVez||!formSucio)llenarForm();
+  $('#nC').textContent=CIERRES.length?`${CIERRES.length} ${CIERRES.length===1?'cierre':'cierres'}${esAdmin?'':' · últimos 60 días'}`:'';
+  const dcls=d=>Math.abs(d)<0.5?'':d>0?'pos':'neg';
+  $('#lista').innerHTML=CIERRES.length?`<div class="tw"><table><thead><tr><th>Fecha</th><th>Turno</th><th>Quién</th><th class="num">Ventas efectivo</th><th class="num">Ventas tarjeta</th>
+    <th class="num">Dif. efectivo</th><th class="num">Dif. tarjeta</th><th class="num">Pagos</th><th class="num">Retiro</th><th class="num">Queda</th><th>Nota</th><th></th></tr></thead><tbody>${
+    CIERRES.map((c,i)=>`<tr><td><b>${fFecha(c.fecha)}</b></td><td>${TURNOS[c.turno]}</td><td>${esc(c.responsable)}</td>
+      <td class="num">${eur(c.ventas_efectivo)}</td><td class="num">${eur(c.ventas_tarjeta)}</td>
+      <td class="num ${dcls(c.dif_efectivo)}"><b>${Math.abs(c.dif_efectivo)<0.005?'✓':eurS(c.dif_efectivo)}</b></td>
+      <td class="num ${dcls(c.dif_tarjeta)}">${Math.abs(c.dif_tarjeta)<0.005?'✓':eurS(c.dif_tarjeta)}</td>
+      <td class="num" title="${esc(c.pagos_detalle||'')}">${c.pagos_efectivo?eur(c.pagos_efectivo):''}</td><td class="num">${c.retiro?eur(c.retiro):''}</td><td class="num">${eur(c.queda)}</td>
+      <td class="wrapc">${esc([c.pagos_detalle,c.nota].filter(Boolean).join(' · '))}</td>
+      <td class="act">${editable(c.fecha)?`<button class="btn sec mini" data-e="${i}">Ver / corregir</button>`:`<button class="btn sec mini" data-e="${i}">Ver</button>`}
+        ${esAdmin?` <button class="tacho" data-x="${i}" title="Borrar cierre" aria-label="Borrar el cierre del ${fFecha(c.fecha)}">${TACHO}</button>`:''}</td></tr>`).join('')
+  }</tbody></table></div>`:'<div class="empty">Todavía no hay cierres cargados.</div>';
+  document.querySelectorAll('#lista [data-e]').forEach(b=>b.onclick=()=>{
+    const c=CIERRES[b.dataset.e];
+    if(formSucio&&!confirm('Lo que cargaste todavía no está guardado. ¿Abrir este cierre igual?'))return;
+    const fi=$('#f_fecha');fi.removeAttribute('min');fi.value=c.fecha;$('#f_turno').value=c.turno;llenarForm();
+    scrollTo({top:0,behavior:'smooth'});
+  });
+  document.querySelectorAll('#lista [data-x]').forEach(b=>b.onclick=async()=>{
+    const c=CIERRES[b.dataset.x];
+    if(!confirm(`¿Borrar el cierre del ${fFecha(c.fecha)} (${TURNOS[c.turno].toLowerCase()}, ${c.responsable})? No se puede deshacer.`))return;
+    try{await rpc('chequeos_borrar_cierre',{p_id:c.id})}catch(e){toast('Error: '+e.message);return}
+    toast('Cierre borrado');cargarCierres(false);
+  });
+}
+addEventListener('beforeunload',e=>{if(tab==='cierres'&&formSucio){e.preventDefault();e.returnValue=''}});
+
+entrar();
+</script>
+</body>
+</html>
