@@ -75,18 +75,38 @@ update public.premios_catalogo c
 -- ---------------------------------------------------------------
 -- Tiene que tener usuario en Authentication y estar en esta lista.
 --   insert into public.premios_staff (email, nombre) values ('tu@mail.com', 'Tu nombre');
+-- rol: 'admin' ve todo (clientes, jugadas, CSV, borrar). 'caja' solo busca
+-- códigos, los canjea y ve lo canjeado hoy (para dejar la página abierta en el mostrador):
+--   insert into public.premios_staff (email, nombre, rol) values ('caja@terrysburgers.com', 'Caja', 'caja');
 create table if not exists public.premios_staff (
   email  text primary key,
   nombre text not null default '',
   creado timestamptz not null default now()
 );
 
+alter table public.premios_staff add column if not exists rol text not null default 'admin';
+alter table public.premios_staff drop constraint if exists premios_staff_rol_check;
+alter table public.premios_staff add constraint premios_staff_rol_check check (rol in ('admin', 'caja'));
+
+-- Cualquiera del local (admin o caja): puede buscar y canjear códigos
 create or replace function public.premios_es_staff()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.premios_staff
     where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
   );
+$$;
+-- Solo admin: ve la base de clientes y jugadas completa, descarga y borra
+create or replace function public.premios_es_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.premios_staff
+    where lower(email) = lower(coalesce(auth.jwt() ->> 'email', '')) and rol = 'admin'
+  );
+$$;
+create or replace function public.premios_mi_rol()
+returns text language sql stable security definer set search_path = public as $$
+  select rol from public.premios_staff where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''));
 $$;
 
 -- ---------------------------------------------------------------
@@ -168,15 +188,15 @@ create table if not exists public.premios_visitantes (
   registrado timestamptz
 );
 alter table public.premios_visitantes add column if not exists tiro_premio int;
-alter table public.premios_visitantes add column if not exists regalo boolean not null default false;  -- recibió los tiros de regalo (entró por el folleto)
--- Los que ya estaban (de antes de esta regla) sí habían recibido el regalo
-update public.premios_visitantes v set regalo = true
- where not regalo and (tiros > 0 or exists (select 1 from public.premios_jugadas j where j.visitante = v.id));  -- cuál de los tiros de regalo gana (1, 2 o 3), al azar
+alter table public.premios_visitantes add column if not exists regalo boolean not null default false;  -- recibió los tiros de regalo (entró por el folleto)  -- cuál de los tiros de regalo gana (1, 2 o 3), al azar
 alter table public.premios_jugadores add column if not exists bienvenida timestamptz;  -- cuándo cobró sus premios de bienvenida
 alter table public.premios_jugadas alter column telefono drop not null;                 -- vacío = jugada de bienvenida sin registrarse todavía
 alter table public.premios_jugadas add column if not exists visitante bigint references public.premios_visitantes (id) on delete cascade;
 alter table public.premios_jugadas add column if not exists ticket    int;
 alter table public.premios_jugadas add column if not exists canal     text;              -- bienvenida | ticket | pedido (Glovo, antes)
+-- Los que ya estaban (de antes de esta regla) sí habían recibido el regalo
+update public.premios_visitantes v set regalo = true
+ where not regalo and (tiros > 0 or exists (select 1 from public.premios_jugadas j where j.visitante = v.id));
 
 -- Los pedidos de antes (1 tiro cada uno) pasan a esta tabla, y el contador de cada jugador se recalcula
 insert into public.premios_pedidos (telefono, pedido, dia, creado, tiros)
@@ -206,15 +226,15 @@ grant select on public.premios_config, public.premios_catalogo,
                 public.premios_jugadores, public.premios_jugadas, public.premios_pedidos to authenticated;
 
 drop policy if exists premios_staff_lee on public.premios_config;
-create policy premios_staff_lee on public.premios_config    for select to authenticated using (public.premios_es_staff());
+create policy premios_staff_lee on public.premios_config    for select to authenticated using (public.premios_es_admin());
 drop policy if exists premios_staff_lee on public.premios_catalogo;
-create policy premios_staff_lee on public.premios_catalogo  for select to authenticated using (public.premios_es_staff());
+create policy premios_staff_lee on public.premios_catalogo  for select to authenticated using (public.premios_es_admin());
 drop policy if exists premios_staff_lee on public.premios_jugadores;
-create policy premios_staff_lee on public.premios_jugadores for select to authenticated using (public.premios_es_staff());
+create policy premios_staff_lee on public.premios_jugadores for select to authenticated using (public.premios_es_admin());
 drop policy if exists premios_staff_lee on public.premios_jugadas;
-create policy premios_staff_lee on public.premios_jugadas   for select to authenticated using (public.premios_es_staff());
+create policy premios_staff_lee on public.premios_jugadas   for select to authenticated using (public.premios_es_admin());
 drop policy if exists premios_staff_lee on public.premios_pedidos;
-create policy premios_staff_lee on public.premios_pedidos   for select to authenticated using (public.premios_es_staff());
+create policy premios_staff_lee on public.premios_pedidos   for select to authenticated using (public.premios_es_admin());
 
 -- ---------------------------------------------------------------
 -- 5. Teléfono: siempre igual escrito, así no juega dos veces
@@ -786,6 +806,40 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------
+-- 8b. Caja (rol 'caja'): buscar un código y ver lo canjeado hoy, sin acceso
+--     a la base de clientes (solo nombre y los últimos 3 números del móvil).
+-- ---------------------------------------------------------------
+create or replace function public.premios_buscar_codigo(p_codigo text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  j   public.premios_jugadas;
+  p   public.premios_pedidos;
+  nom text;
+begin
+  if not public.premios_es_staff() then raise exception 'Sin permiso'; end if;
+  select * into j from premios_jugadas where codigo = public.premios_codigo(p_codigo);
+  if j.id is null then return null; end if;
+  select nombre into nom from premios_jugadores where telefono = j.telefono;
+  if j.ticket is not null then
+    select * into p from premios_pedidos where telefono = j.telefono and ticket = j.ticket order by creado desc limit 1;
+  end if;
+  return jsonb_build_object(
+    'codigo', j.codigo, 'premio', j.premio, 'simbolo', j.simbolo, 'nombre', nom,
+    'registrado', j.telefono is not null, 'tel3', right(j.telefono, 3),
+    'ticket', j.ticket, 'fecha_ticket', p.fecha_ticket, 'pedido', j.pedido, 'canal', j.canal,
+    'creado', j.creado, 'dia', j.dia, 'vence', j.vence, 'canjeado', j.canjeado, 'canjeado_por', j.canjeado_por);
+end $$;
+
+create or replace function public.premios_canjes_hoy()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when not public.premios_es_staff() then null else coalesce(jsonb_agg(jsonb_build_object(
+      'canjeado', j.canjeado, 'codigo', j.codigo, 'premio', j.premio, 'nombre', g.nombre,
+      'ticket', j.ticket, 'canjeado_por', j.canjeado_por) order by j.canjeado desc), '[]'::jsonb) end
+    from premios_jugadas j left join premios_jugadores g using (telefono)
+   where j.canjeado is not null and (j.canjeado at time zone 'Europe/Madrid')::date = (now() at time zone 'Europe/Madrid')::date;
+$$;
+
+-- ---------------------------------------------------------------
 -- 9. Borrar un jugador cargado mal (desde la página del local).
 --    Se borran también todas sus jugadas y premios (on delete cascade).
 -- ---------------------------------------------------------------
@@ -796,7 +850,7 @@ declare
   n   int;
   g   int;
 begin
-  if not public.premios_es_staff() then raise exception 'Sin permiso'; end if;
+  if not public.premios_es_admin() then raise exception 'Sin permiso'; end if;
   select count(*), count(codigo) into n, g from premios_jugadas where telefono = tel;
   delete from premios_jugadores where telefono = tel;
   if not found then return jsonb_build_object('estado', 'no_existe'); end if;
@@ -832,3 +886,9 @@ grant  execute on function public.premios_saldo(text, text)    to anon, authenti
 grant  execute on function public.premios_canjear(text)        to authenticated;
 grant  execute on function public.premios_deshacer_canje(text) to authenticated;
 grant  execute on function public.premios_es_staff()           to authenticated;
+revoke execute on function public.premios_buscar_codigo(text) from public;
+revoke execute on function public.premios_canjes_hoy()        from public;
+grant  execute on function public.premios_es_admin()          to authenticated;
+grant  execute on function public.premios_mi_rol()            to authenticated;
+grant  execute on function public.premios_buscar_codigo(text) to authenticated;
+grant  execute on function public.premios_canjes_hoy()        to authenticated;

@@ -81,7 +81,11 @@ Va en el **mismo proyecto que Terry's Administración** (el plan gratis de Supab
    ```sql
    insert into public.premios_staff (email, nombre) values ('tu@mail.com', 'Tu nombre');
    ```
-   Para alguien de caja: primero **Authentication → Users → Add user** (email + contraseña, tildando *Auto Confirm User*) y después el mismo `insert` con su email. Estar en `premios_staff` **no** le da acceso a Administración (esa tiene su propia lista).
+   **Usuario de caja (solo canjear):** para dejar la página abierta en el mostrador, con un usuario que solo busca códigos, los canjea y ve lo canjeado hoy, sin acceso a la base de clientes (teléfonos, emails, CSV, borrar). Lo controla la base, no solo la página:
+   1. **Authentication → Users → Add user**: un email (puede ser uno inventado, ej. `caja@terrysburgers.com`) y una contraseña, tildando *Auto Confirm User*.
+   2. SQL Editor: `insert into public.premios_staff (email, nombre, rol) values ('caja@terrysburgers.com', 'Caja', 'caja');`
+
+   Para alguien de caja con acceso completo (admin): primero **Authentication → Users → Add user** (email + contraseña, tildando *Auto Confirm User*) y después el mismo `insert` con su email. Estar en `premios_staff` **no** le da acceso a Administración (esa tiene su propia lista).
 
 ### 2. Datos del negocio
 

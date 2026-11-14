@@ -159,9 +159,11 @@ if(!SB)document.body.insertAdjacentHTML('beforeend','<div class="demo">Modo demo
 // ---------- Datos ----------
 const demoDb=()=>{try{return JSON.parse(localStorage.getItem('tp_demo_db'))||{jugadores:{},jugadas:[],pedidos:[]}}catch{return{jugadores:{},jugadas:[],pedidos:[]}}};
 const demoSave=db=>{try{localStorage.setItem('tp_demo_db',JSON.stringify(db))}catch{}};
-let email='', J=[], P=[], T={}, tab='pendientes';
+let email='', rol='admin', J=[], P=[], T={}, tab='pendientes', HOY=[];
+const esCaja=()=>rol==='caja';
 
 async function cargar(){
+  if(esCaja())return cargarCaja();
   let tks=[];
   if(!SB){const db=demoDb();J=Object.values(db.jugadores);P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));tks=db.pedidos||[];}
   else{
@@ -180,7 +182,29 @@ async function cargar(){
   J.sort((a,b)=>String(b.ultima_jugada||'').localeCompare(String(a.ultima_jugada||'')));
   pintarResumen();pintarTab();
 }
+// Caja: lo canjeado hoy (sin datos de contacto)
+async function cargarCaja(){
+  if(!SB){const db=demoDb(),hoy=hoyISO();P=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));
+    HOY=P.filter(x=>x.canjeado&&new Date(x.canjeado).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'})===hoy).sort((a,b)=>b.canjeado.localeCompare(a.canjeado))}
+  else{const {data,error}=await sbc.rpc('premios_canjes_hoy');if(error){toast('No se pudo cargar: '+error.message);return}HOY=data||[]}
+  pintarHoy();
+}
+function pintarHoy(){
+  const b=$('#hoy');if(!b)return;
+  $('#nHoy').textContent=HOY.length?`${HOY.length} ${HOY.length===1?'premio':'premios'}`:'';
+  b.innerHTML=HOY.length?`<div class="tw"><table><thead><tr><th>Hora</th><th>Premio</th><th>Cliente</th><th>Código</th><th>Ticket</th><th>Lo entregó</th></tr></thead><tbody>${
+    HOY.map(x=>`<tr><td><b>${new Date(x.canjeado).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'})}</b></td><td>${esc(x.premio)}</td><td>${esc(x.nombre||'')}</td>
+      <td class="code"><a href="#" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a></td><td>${x.ticket!=null?'Ticket '+esc(x.ticket):x.pedido?'#'+esc(x.pedido):'Bienvenida'}</td><td>${esc(x.canjeado_por||'')}</td></tr>`).join('')
+  }</tbody></table></div>`:'<div class="empty">Hoy todavía no se canjeó ningún premio.</div>';
+  b.querySelectorAll('a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+}
 async function buscarCodigo(cod){
+  if(SB&&esCaja()){
+    // Caja no lee las tablas: la base le devuelve solo lo necesario para canjear
+    const {data,error}=await sbc.rpc('premios_buscar_codigo',{p_codigo:cod});
+    if(error)throw error;
+    return data&&{...data,telefono:data.registrado?'·······'+(data.tel3||''):null};
+  }
   if(!SB)return P.find(x=>x.codigo===cod)||null;
   const {data,error}=await sbc.from('premios_jugadas').select('*,premios_jugadores(nombre,telefono)').eq('codigo',cod).maybeSingle();
   if(error)throw error;
@@ -290,13 +314,14 @@ async function entrar(){
     const {data:ok}=await sbc.rpc('premios_es_staff');
     if(!ok){await sbc.auth.signOut();return pintarLogin('Ese usuario no está en la lista del local (premios_staff).')}
     email=session.user.email;
-  }else email='demo';
+    try{const {data:r}=await sbc.rpc('premios_mi_rol');rol=r==='caja'?'caja':'admin'}catch(e){rol='admin'}
+  }else{email='demo';rol=new URLSearchParams(location.search).has('caja')?'caja':'admin'}
   pintarApp();cargar();
 }
 
 function pintarApp(){
   $('#app').innerHTML=`<div class="wrap">
-    <header><div class="wordmark">TERRY'S <small>Premios · local</small></div>
+    <header><div class="wordmark">TERRY'S <small>Premios · ${esCaja()?'caja':'local'}</small></div>
       <div class="me">${esc(email)} ${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
     <section class="canje">
       <h2>Canjear un premio</h2>
@@ -305,6 +330,7 @@ function pintarApp(){
         aria-label="Buscar premio" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"><button class="btn" type="button" id="cb">Buscar</button></div>
       <div class="res" id="cr"></div>
     </section>
+    ${esCaja()?`<section class="panel"><div class="bar"><h2 style="font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03em">Canjeados hoy</h2><span class="n" id="nHoy"></span></div><div id="hoy"></div></section>`:`
     <div class="cards" id="cards"></div>
     <div class="tabs" role="tablist">
       <button role="tab" data-t="pendientes">Por canjear<span class="cnt" id="cntPend"></span></button>
@@ -313,8 +339,10 @@ function pintarApp(){
       <button role="tab" data-t="jugadores">Jugadores</button>
       <button role="tab" data-t="qr">QR del flyer</button>
     </div>
-    <div class="panel" id="panel"></div>
+    <div class="panel" id="panel"></div>`}
   </div>`;
+  // La página de caja queda abierta todo el día: refresca lo canjeado cada minuto
+  clearInterval(pintarApp.reloj);if(esCaja())pintarApp.reloj=setInterval(()=>{if(document.visibilityState==='visible')cargarCaja()},60000);
   if(SB)$('#salir').onclick=async()=>{await sbc.auth.signOut();pintarLogin()};
   document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;pintarTab()});
   // No es un <form> ni toma el foco solo: así el navegador y los gestores de contraseñas
@@ -398,7 +426,7 @@ function verifTxt(t){
 }
 function origenTxt(x,corto){
   if(x.ticket!=null){
-    const t=T[x.telefono+'|'+x.ticket];
+    const t=T[x.telefono+'|'+x.ticket]||(x.fecha_ticket?{fecha_ticket:x.fecha_ticket}:null);
     return`<span class="code">Ticket ${esc(x.ticket)}</span>${t&&t.fecha_ticket?` <span class="sub">${fFecha(t.fecha_ticket).slice(0,5)}</span>`:''}${corto?'':' '+verifTxt(t)}`;
   }
   if(x.pedido)return`<span class="code">#${esc(x.pedido)}</span> <span class="sub">Glovo ${fFecha(x.dia||x.creado).slice(0,5)}</span>`;
