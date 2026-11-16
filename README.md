@@ -73,7 +73,7 @@ Arriba, las tarjetas con las jugadas de hoy y de la semana, jugadores, premios d
 
 ## Chequeos (`chequeos.html`)
 
-`https://ruleta.terrysburgers.com/chequeos.html` — para dejar abierta en el local con el **usuario de caja**. No da acceso a Administración ni a la base de clientes. Tiene tres solapas:
+**https://update.terrysburgers.com/** — desde 2026-11-16 la página vive en su propio repo (`terrys-update`, archivo `index.html`); acá `chequeos.html` solo redirige ahí y el SQL (`chequeos.sql`) sigue en este repo. Es para dejar abierta en el local con el **usuario de caja**. No da acceso a Administración ni a la base de clientes. Tiene tres solapas:
 
 - **Ruleta:** lo mismo que `local.html`, en un solo lugar: el buscador para **canjear códigos**, el resumen (jugadas de hoy y de la semana, jugadores, premios dados, canjeados) y las listas **Por canjear**, **Canjeados**, **Jugadas** y **Jugadores** (por día, con buscador). Los datos salen de la función `chequeos_participantes()`: el **admin** ve además el móvil completo (link a WhatsApp), el email, los CSV, el tacho para eliminar un jugador y el **QR del flyer**; el usuario de **caja** ve todo lo demás, pero de contacto solo el nombre y los últimos 3 números del móvil.
 - **Reservas:** las reservas de la web de los próximos 30 días (pendientes y confirmadas), agrupadas por día con personas y teléfono. Solo para mirar: confirmarlas o cambiarlas sigue siendo en Administración.
@@ -81,7 +81,7 @@ Arriba, las tarjetas con las jugadas de hoy y de la semana, jugadores, premios d
 
 Se instala corriendo **`chequeos.sql`** en el SQL Editor (después de `schema.sql`). Entra cualquiera de `premios_staff` (caja o admin) y todo pasa por funciones `chequeos_…` de la base: el usuario de caja no puede leer ninguna tabla directo. Los arqueos quedan en la tabla `caja_arqueos` (funciones `chequeos_arqueos`, `chequeos_guardar_arqueo`, `chequeos_borrar_arqueo`); la tabla `caja_cierres` de la primera versión ya no se usa. Para sumar otro chequeo más adelante: otra función `chequeos_…` y otra solapa en la página.
 
-Para probarla sin base: `chequeos.html?demo` (como caja) o `chequeos.html?demo=admin`.
+Para probarla sin base: `https://update.terrysburgers.com/?demo` (como caja) o `?demo=admin`.
 
 ## Puesta en marcha (una sola vez)
 
