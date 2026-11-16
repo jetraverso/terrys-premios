@@ -167,3 +167,53 @@ revoke execute on function public.chequeos_ruleta()      from public;
 revoke execute on function public.chequeos_reservas(int) from public;
 grant  execute on function public.chequeos_ruleta()      to authenticated;
 grant  execute on function public.chequeos_reservas(int) to authenticated;
+
+-- ---------------------------------------------------------------
+-- 4. Ruleta: toda la información de los que participaron (lo mismo que se ve en local.html)
+-- ---------------------------------------------------------------
+-- Jugadores, jugadas (las últimas 3000) y tickets. El admin recibe también el
+-- móvil completo y el email; caja recibe todo lo demás, pero de contacto solo el
+-- nombre y los últimos 3 números del móvil. Para unir jugadas, tickets y jugadores
+-- sin mandar el móvil, cada jugador lleva un número k que solo vale dentro de
+-- esta respuesta.
+create or replace function public.chequeos_participantes()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  adm boolean := public.premios_es_admin();
+  r   jsonb;
+begin
+  if not public.premios_es_staff() then raise exception 'Sin permiso'; end if;
+  with g as (
+    select *, row_number() over (order by primera_jugada, telefono) as k from premios_jugadores
+  ), jj as (
+    select j.*, g.k, g.nombre as g_nombre
+      from premios_jugadas j left join g on g.telefono = j.telefono
+     order by j.creado desc limit 3000
+  ), tt as (
+    select g.k, p.ticket, p.fecha_ticket, p.verif, p.importe, p.canal
+      from premios_pedidos p join g on g.telefono = p.telefono
+     where p.ticket is not null
+     order by p.creado desc limit 5000
+  )
+  select jsonb_build_object(
+    'admin', adm,
+    'jugadores', coalesce((select jsonb_agg(
+          jsonb_build_object('k', x.k, 'nombre', x.nombre, 'tel3', right(x.telefono, 3),
+            'acepta_promos', x.acepta_promos, 'origen', x.origen, 'pedidos', x.pedidos, 'tiros', x.tiros,
+            'jugadas', x.jugadas, 'premios', x.premios, 'primera_jugada', x.primera_jugada, 'ultima_jugada', x.ultima_jugada)
+          || case when adm then jsonb_build_object('telefono', x.telefono, 'email', x.email) else '{}'::jsonb end
+          order by x.ultima_jugada desc nulls last)
+        from (select * from g order by ultima_jugada desc nulls last limit 10000) x), '[]'::jsonb),
+    'jugadas', coalesce((select jsonb_agg(
+          (to_jsonb(jj) - 'telefono' - 'rodillos' - 'visitante' - 'g_nombre')
+          || jsonb_build_object('nombre', jj.g_nombre, 'tel3', right(jj.telefono, 3))
+          || case when adm then jsonb_build_object('telefono', jj.telefono) else '{}'::jsonb end
+          order by jj.creado desc)
+        from jj), '[]'::jsonb),
+    'tickets', coalesce((select jsonb_agg(to_jsonb(tt)) from tt), '[]'::jsonb))
+    into r;
+  return r;
+end $$;
+
+revoke execute on function public.chequeos_participantes() from public, anon;
+grant  execute on function public.chequeos_participantes() to authenticated;

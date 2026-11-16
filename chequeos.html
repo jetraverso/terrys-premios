@@ -35,7 +35,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
 .btn.ok{background:var(--ok);color:#0d1a12}
 .btn.mini{padding:6px 12px;font-size:13px;border-radius:8px}
 .btn:disabled{opacity:.55;cursor:default}
-input[type=text],input[type=email],input[type=password],input[type=date],select,textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--paper);width:100%}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=search],input[type=url],select,textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--paper);width:100%}
 input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--out);outline-offset:1px}
 h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03em;line-height:1.1}
 .sub{color:var(--muted);font-size:13px}
@@ -56,11 +56,17 @@ h2{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.03e
 .tabs{display:flex;gap:4px;margin-top:18px;border-bottom:1px solid var(--line);overflow-x:auto}
 .tabs button{padding:10px 14px;border:0;background:none;color:var(--muted);font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tabs button[aria-selected=true]{color:var(--ink);border-color:var(--out)}
-.tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--out);color:#1a0f09;font-size:12px;line-height:18px;text-align:center}
-.tabs .cnt:empty{display:none}
+.tabs .cnt,.subtabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--out);color:#1a0f09;font-size:12px;line-height:18px;text-align:center}
+.tabs .cnt:empty,.subtabs .cnt:empty{display:none}
+.subtabs{display:flex;gap:6px;margin:16px 0 4px;overflow-x:auto;padding:2px}
+.subtabs button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line-2);background:none;color:var(--ink-2);font-weight:600;cursor:pointer;white-space:nowrap}
+.subtabs button[aria-selected=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .panel{padding-top:16px}
 .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 10px}
 .bar .n{color:var(--muted);font-size:13px;margin-left:auto}
+.bar input[type=search]{max-width:280px}
+.bar label{font-size:13px;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+.bar label input{width:auto}
 
 /* Tarjetas */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -80,7 +86,7 @@ td.wrapc{white-space:normal;min-width:180px;max-width:360px;color:var(--ink-2)}
 td.act{text-align:right}
 .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
 .pill.si{background:var(--ok-soft);color:var(--ok)} .pill.no{background:var(--surface-2);color:var(--muted)}
-.pill.gan{background:var(--warn-soft);color:var(--gold)} .pill.ven{background:var(--out-soft);color:var(--out-ink)}
+.pill.gan{background:var(--warn-soft);color:var(--gold)} .pill.can{background:var(--accent-soft);color:var(--accent)} .pill.ven{background:var(--out-soft);color:var(--out-ink)}
 .pos{color:var(--ok)} .neg{color:var(--danger)}
 .tacho{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:none;color:var(--muted);cursor:pointer;vertical-align:middle}
 .tacho:hover,.tacho:focus-visible{color:var(--danger);border-color:var(--danger);background:var(--out-soft)}
@@ -112,6 +118,15 @@ td.act{text-align:right}
 .dia>summary .r{margin-left:auto;color:var(--muted);font-size:13px;text-align:right}
 .dia[open]>summary{border-bottom:1px solid var(--line)}
 .dia .tw{border:0;border-radius:0}
+.dia .empty{padding:16px}
+/* QR del flyer */
+.qr{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start;margin-top:12px}
+@media (max-width:700px){.qr{grid-template-columns:1fr}}
+.qr label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.qr p{color:var(--ink-2);font-size:14px}
+.qrbox{background:#fff;border-radius:14px;padding:14px;display:grid;place-items:center}
+.qrbox svg{width:100%;height:auto;display:block}
+.qrurl{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
 .aviso{padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);font-size:14px;margin-bottom:12px}
 
 /* Cierre de caja: arqueo por billetes y monedas, pensado para cargar con el dedo en el iPad */
@@ -211,6 +226,7 @@ td.act{text-align:right}
 const SUPABASE_URL='https://cgkpklimplpedgxbgzvu.supabase.co';
 const SUPABASE_KEY='sb_publishable_yG1hrdoynoxBBYh9LX7QpA_we_bb_qC';
 
+const URL_RULETA='https://ruleta.terrysburgers.com/';   // la ruleta de los clientes y local.html viven ahí
 const QS=new URLSearchParams(location.search);
 const DEMO=QS.has('demo'), SB=!DEMO&&!!(SUPABASE_URL&&SUPABASE_KEY);
 // Misma sesión que local.html (mismo storageKey): si ya entraste ahí, acá también.
@@ -244,14 +260,26 @@ const dLeer=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{retu
 const dGuardar=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
 function demoRpc(fn,a){
   const hoy=hoyISO(), db=dLeer('tp_demo_db',{jugadores:{},jugadas:[],pedidos:[]}), dia=x=>new Date(x).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
-  const J=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));
-  if(fn==='chequeos_ruleta'){
-    const pend=J.filter(x=>x.codigo&&x.telefono&&!x.canjeado&&x.vence>=hoy);
-    return{jugadas_hoy:J.filter(x=>dia(x.creado)===hoy).length,premios_hoy:J.filter(x=>x.codigo&&dia(x.creado)===hoy).length,
-      canjeados_hoy:J.filter(x=>x.canjeado&&dia(x.canjeado)===hoy).length,por_canjear:pend.length,vencen_7:pend.filter(x=>x.vence<=sumarDias(hoy,7)).length,
-      tickets_hoy:(db.pedidos||[]).filter(x=>x.ticket!=null&&dia(x.creado)===hoy).length,
-      canjes_hoy:J.filter(x=>x.canjeado&&dia(x.canjeado)===hoy).sort((a,b)=>b.canjeado.localeCompare(a.canjeado))};
+  if(!db.jugadas.length&&!Object.keys(db.jugadores).length){   // sin nada jugado en este navegador: unos datos de ejemplo
+    const h=n=>new Date(Date.now()-n*3600e3).toISOString(), g=(t,n,e,pr,o,jg,p,pi,ul)=>db.jugadores[t]={telefono:t,nombre:n,email:e,acepta_promos:pr,origen:o,pedidos:jg,tiros:0,jugadas:jg,premios:p,primera_jugada:h(pi),ultima_jugada:h(ul)};
+    g('+34611222333','Marta Gil','marta@example.com',true,'flyer',3,2,200,2);g('+34622333444','Leo Paz',null,false,'mesa',1,1,30,26);g('+34633444555','Pau Roca','pau@example.com',true,'glovo',2,0,90,5);
+    const j=(id,t,hs,pre,cod,tk,canj)=>db.jugadas.push({id,telefono:t,creado:h(hs),simbolo:pre?'x':null,premio:pre,codigo:cod,vence:cod?sumarDias(hoy,cod==='T-VENC1'?-2:20):null,canjeado:canj?h(canj):null,canjeado_por:canj?'caja':null,origen:(db.jugadores[t]||{}).origen||'flyer',pedido:null,ticket:tk,dia:dia(h(hs)),canal:tk?'ticket':'bienvenida'});
+    j(1,'+34611222333',2,'Papas gratis','T-K7P3Q',1532,null);j(2,'+34611222333',3,null,null,1532,null);j(3,'+34611222333',200,'Bebida gratis','T-A1B2C',980,190);
+    j(4,'+34622333444',26,'Postre gratis','T-M4N5P',1498,1);j(5,'+34633444555',5,null,null,1511,null);j(6,'+34633444555',90,null,null,null,null);j(7,null,1,'Salsa extra','T-SINR1',null,null);
+    db.pedidos=[[ '+34611222333',1532,0,'ok',23.5],['+34611222333',980,8,'ok',31],['+34622333444',1498,1,'pendiente',null],['+34633444555',1511,0,'no',null]].map(([t,tk,d,v,im])=>({telefono:t,ticket:tk,fecha_ticket:sumarDias(hoy,-d),verif:v,importe:im,canal:v==='ok'?'Local':null,creado:h(d*24+2)}));
+    dGuardar('tp_demo_db',db);
   }
+  const J=db.jugadas.map(x=>({...x,nombre:(db.jugadores[x.telefono]||{}).nombre}));
+  if(fn==='chequeos_participantes'){
+    const adm=QS.get('demo')==='admin', tels=Object.keys(db.jugadores), k=t=>{const i=tels.indexOf(t);return i<0?null:i+1};
+    const cont=o=>{if(adm)return o;const {telefono,email,...resto}=o;return resto};   // caja no recibe móvil ni email
+    return{admin:adm,
+      jugadores:Object.values(db.jugadores).map(g=>cont({...g,k:k(g.telefono),tel3:String(g.telefono).slice(-3)})).sort((x,y)=>String(y.ultima_jugada||'').localeCompare(String(x.ultima_jugada||''))),
+      jugadas:J.map(x=>cont({...x,k:k(x.telefono),tel3:String(x.telefono||'').slice(-3)})).sort((x,y)=>y.creado.localeCompare(x.creado)),
+      tickets:(db.pedidos||[]).filter(x=>x.ticket!=null).map(x=>({k:k(x.telefono),ticket:x.ticket,fecha_ticket:x.fecha_ticket,verif:x.verif,importe:x.importe,canal:x.canal}))};
+  }
+  if(fn==='premios_borrar_jugador'){const t=a.p_telefono;if(!db.jugadores[t])return{estado:'no_existe'};
+    delete db.jugadores[t];db.jugadas=db.jugadas.filter(x=>x.telefono!==t);db.pedidos=(db.pedidos||[]).filter(x=>x.telefono!==t);dGuardar('tp_demo_db',db);return{estado:'ok'}}
   if(fn==='premios_buscar_codigo'){const j=J.find(x=>x.codigo===a.p_codigo);return j?{...j,registrado:!!j.telefono,tel3:String(j.telefono||'').slice(-3)}:null}
   if(fn==='premios_canjear'){const j=db.jugadas.find(x=>x.codigo===a.p_codigo);if(!j)return{estado:'no_existe'};if(j.canjeado)return{estado:'ya_canjeado'};if(j.vence<hoy)return{estado:'vencido'};
     j.canjeado=new Date().toISOString();j.canjeado_por='demo';dGuardar('tp_demo_db',db);return{estado:'ok'}}
@@ -285,7 +313,7 @@ function demoRpc(fn,a){
 let email='', esAdmin=false, tab=dLeer('chq_tab','ruleta');
 function pintarLogin(msg=''){
   $('#app').innerHTML=`<form class="login" id="lf">
-    <h1>Terry's · Chequeos</h1><p>Ruleta, próximas reservas y cierres de caja del local.</p>
+    <h1>Terry's · Chequeos</h1><p>Ruleta, próximas reservas y cierre de caja del local.</p>
     <label for="le">Email</label><input type="email" id="le" autocomplete="username" required>
     <label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password" required>
     <button class="btn" id="lb">Entrar</button><div class="msg" id="lm">${esc(msg)}</div>
@@ -295,7 +323,7 @@ function pintarLogin(msg=''){
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){m.textContent='Escribe tu email arriba y vuelve a tocar "¿Olvidaste tu contraseña?".';$('#le').focus();return}
     $('#lo').disabled=true;
     // El link del mail abre local.html (la dirección que ya está autorizada en Supabase); de ahí hay un link a Chequeos.
-    const {error}=await sbc.auth.resetPasswordForEmail(em,{redirectTo:new URL('local.html',location.href).href});
+    const {error}=await sbc.auth.resetPasswordForEmail(em,{redirectTo:URL_RULETA+'local.html'});
     $('#lo').disabled=false;
     if(error){m.textContent=/rate|seconds/i.test(error.message)?'Espera un minuto antes de pedir otro mail.':'No se pudo mandar el mail: '+error.message;return}
     m.className='msg ok';m.textContent='Te mandamos un mail a '+em+'. Abre el link desde este mismo dispositivo para poner una contraseña nueva.';
@@ -322,7 +350,7 @@ async function entrar(){
 function pintarApp(){
   $('#app').innerHTML=`<div class="wrap">
     <header><div class="wordmark">TERRY'S <small>Chequeos${esAdmin?'':' · caja'}</small></div>
-      <div class="me">${esAdmin?'<a href="local.html">Premios (admin)</a>':''}<span>${esc(email)}</span>${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
+      <div class="me">${esAdmin?`<a href="${URL_RULETA}local.html">Premios (admin)</a>`:''}<span>${esc(email)}</span>${SB?'<button class="lnk" id="salir">Salir</button>':''}</div></header>
     <div class="tabs" role="tablist">
       <button role="tab" data-t="ruleta">Ruleta<span class="cnt" id="cntRul"></span></button>
       <button role="tab" data-t="reservas">Reservas<span class="cnt" id="cntRes"></span></button>
@@ -348,37 +376,254 @@ function pintarTab(){
 }
 
 // ---------- Ruleta ----------
+// Lo mismo que local.html, acá: canjear, por canjear, canjeados, jugadas, jugadores y el QR.
+// Los datos llegan de chequeos_participantes(): el admin recibe móvil y email; caja no
+// (solo el nombre y los últimos 3 números). k une a cada jugador con sus jugadas y tickets.
+let RJ=[], RP=[], RT={}, rsub=dLeer('chq_rsub','pendientes'), rDraw=null;
+const abiertosR={};   // por lista: qué días abrió o cerró a mano
+const diaDe=f=>new Date(f).toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
+const esPendiente=x=>x.codigo&&x.k!=null&&!x.canjeado&&x.vence>=hoyISO();   // sin jugador = ganado sin registrarse todavía
 function tabRuleta(){
-  $('#panel').innerHTML=`<div class="cards" id="cards"></div>
-    <section class="canje">
+  $('#panel').innerHTML=`<section class="canje" style="margin-top:0">
       <h2>Canjear un premio</h2>
       <div class="cf" role="search"><input type="text" id="ci" name="terrys-premio-buscar" placeholder="T-XXXXX" readonly
         autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search" maxlength="10"
         aria-label="Código del premio" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"><button class="btn" type="button" id="cb">Buscar</button></div>
       <div class="res" id="cr"></div>
     </section>
-    <div class="bar"><h2>Canjeados hoy</h2><span class="n" id="nHoy"></span></div><div id="hoy"></div>`;
+    <div class="cards" id="cards" style="margin-top:14px"></div>
+    <div class="subtabs" role="tablist" id="rsubs">
+      <button role="tab" data-s="pendientes">Por canjear<span class="cnt" id="cntPend"></span></button>
+      <button role="tab" data-s="canjeados">Canjeados</button>
+      <button role="tab" data-s="jugadas">Jugadas</button>
+      <button role="tab" data-s="jugadores">Jugadores</button>
+      ${esAdmin?'<button role="tab" data-s="qr">QR del flyer</button>':''}
+    </div>
+    <div id="rpanel"><div class="empty">Cargando…</div></div>`;
   // Sin <form> y sin foco automático: así los gestores de contraseñas no se meten en el campo
   const ci=$('#ci'), soltar=()=>ci.removeAttribute('readonly');
   ci.addEventListener('pointerdown',soltar);ci.addEventListener('focus',soltar);
   ci.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();verCodigo(ci.value)}});
   $('#cb').onclick=()=>verCodigo(ci.value);
-  cargarRuleta();
+  document.querySelectorAll('#rsubs button').forEach(b=>b.onclick=()=>{rsub=b.dataset.s;dGuardar('chq_rsub',rsub);pintarSub()});
+  rDraw=null;
+  cargarRuleta(true);
 }
-async function cargarRuleta(){
-  let r;try{r=await rpc('chequeos_ruleta')}catch(e){if($('#cards'))$('#cards').innerHTML=`<div class="nf">No se pudo cargar: ${esc(e.message)}</div>`;return}
+async function cargarRuleta(primera){
+  // Al abrir se vuelven a mirar en Ágora los tickets pendientes (si esa verificación está activada)
+  if(primera&&SB){try{await sbc.rpc('premios_verificar_tickets')}catch(e){}}
+  let r;try{r=await rpc('chequeos_participantes')}catch(e){
+    if(tab!=='ruleta'||!$('#rpanel'))return;
+    const falta=/chequeos_participantes|PGRST202|schema cache|does not exist/i.test((e.code||'')+' '+(e.message||''));
+    $('#rpanel').innerHTML=`<div class="nf">${falta?'Falta correr el <b>chequeos.sql</b> nuevo en Supabase (SQL Editor → Run) para ver las jugadas y los jugadores. Canjear un premio funciona igual.':'No se pudo cargar: '+esc(e.message)}</div>`;
+    return}
+  RJ=r.jugadores||[];RP=r.jugadas||[];RT={};
+  (r.tickets||[]).forEach(t=>{RT[t.k+'|'+t.ticket]=t});
+  const n=RP.filter(esPendiente).length, c=$('#cntRul');if(c)c.textContent=n||'';
   if(tab!=='ruleta'||!$('#cards'))return;
-  $('#cntRul').textContent=r.por_canjear||'';
+  pintarResumenR();
+  if(primera||!rDraw)pintarSub();else if(rsub!=='qr')rDraw();
+}
+function pintarResumenR(){
+  const hoy=hoyISO(), hace7=new Date(Date.now()-7*864e5).toISOString();
+  const gan=RP.filter(x=>x.codigo), can=gan.filter(x=>x.canjeado), pend=gan.filter(esPendiente), sem=RP.filter(x=>x.creado>=hace7);
   const c=(k,v,s)=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
-  $('#cards').innerHTML=c('Jugadas hoy',r.jugadas_hoy,`${r.tickets_hoy} ${r.tickets_hoy===1?'ticket cargado':'tickets cargados'}`)+c('Premios ganados hoy',r.premios_hoy)
-    +c('Canjeados hoy',r.canjeados_hoy)+c('Por canjear',r.por_canjear,r.vencen_7?`${r.vencen_7} vencen esta semana`:'');
-  const H=r.canjes_hoy||[];
-  $('#nHoy').textContent=H.length?`${H.length} ${H.length===1?'premio':'premios'}`:'';
-  $('#hoy').innerHTML=H.length?`<div class="tw"><table><thead><tr><th>Hora</th><th>Premio</th><th>Cliente</th><th>Código</th><th>Origen</th><th>Lo entregó</th></tr></thead><tbody>${
-    H.map(x=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td>${esc(x.premio)}</td><td>${esc(x.nombre||'')}</td>
-      <td class="code"><a href="#" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a></td><td>${x.ticket!=null?'Ticket '+esc(x.ticket):x.pedido?'#'+esc(x.pedido):'Bienvenida'}</td><td>${esc(x.canjeado_por||'')}</td></tr>`).join('')
-  }</tbody></table></div>`:'<div class="empty">Hoy todavía no se canjeó ningún premio.</div>';
-  document.querySelectorAll('#hoy a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+  $('#cards').innerHTML=c('Jugadas hoy',RP.filter(x=>diaDe(x.creado)===hoy).length,`${gan.filter(x=>diaDe(x.creado)===hoy).length} con premio`)
+    +c('Últimos 7 días',sem.length,`${new Set(sem.filter(x=>x.k!=null).map(x=>x.k)).size} personas`)
+    +c('Jugadores',RJ.length,`${RJ.filter(x=>x.acepta_promos).length} aceptan promos`)
+    +c('Premios dados',gan.length,`${RP.length?Math.round(gan.length/RP.length*100):0}% de las jugadas`)
+    +c('Canjeados',can.length,`${can.filter(x=>diaDe(x.canjeado)===hoy).length} hoy · ${pend.length} por canjear`);
+  const cp=$('#cntPend');if(cp)cp.textContent=pend.length||'';
+}
+function pintarSub(){
+  if(!['pendientes','canjeados','jugadas','jugadores','qr'].includes(rsub)||(rsub==='qr'&&!esAdmin))rsub='pendientes';
+  document.querySelectorAll('#rsubs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===rsub));
+  ({pendientes:subPendientes,canjeados:subCanjeados,jugadas:subJugadas,jugadores:subJugadores,qr:subQr})[rsub]();
+}
+// De dónde vino la jugada: ticket (con su verificación en Ágora), bienvenida (folleto) o pedido de Glovo (antes)
+function verifTxt(t){
+  if(!t||!t.verif||t.verif==='manual')return'';   // sin cruce con Ágora: se controla a mano
+  if(t.verif==='ok')return`<span class="pill si" title="Está en Ágora">✓ Ágora${t.importe!=null?' · '+Number(t.importe).toFixed(2).replace('.',',')+' €':''}${t.canal?' · '+esc(t.canal):''}</span>`;
+  if(t.verif==='no')return'<span class="pill ven" title="Ese día ya está cargado y el ticket no aparece">✗ No está en Ágora</span>';
+  return`<span class="pill gan" title="Ágora sube las ventas cada noche">⏳ ${t.fecha_ticket>=hoyISO()?'Se verifica mañana':'Pendiente de Ágora'}</span>`;
+}
+function origenTxt(x,corto){
+  if(x.ticket!=null){
+    const t=RT[x.k+'|'+x.ticket];
+    return`<span class="code">Ticket ${esc(x.ticket)}</span>${t&&t.fecha_ticket?` <span class="sub">${fFecha(t.fecha_ticket).slice(0,5)}</span>`:''}${corto?'':' '+verifTxt(t)}`;
+  }
+  if(x.pedido)return`<span class="code">#${esc(x.pedido)}</span> <span class="sub">Glovo ${fFecha(x.dia||x.creado).slice(0,5)}</span>`;
+  return'<span class="pill no">Bienvenida</span>';
+}
+const origenPlano=x=>{const v=(RT[x.k+'|'+x.ticket]||{}).verif;
+  return x.ticket!=null?`Ticket ${x.ticket}${v==='ok'?' (verificado en Ágora)':v==='no'?' (NO está en Ágora)':''}`:x.pedido?'#'+x.pedido+' (Glovo)':'Bienvenida (folleto)'};
+const quienTxt=x=>`${esc(x.nombre||'')} <span class="sub">··· ${esc(x.tel3||'')}</span>`;
+const buscador=ph=>`<input type="search" id="q" placeholder="${ph}" autocomplete="off">`;
+const coincide=(x,q)=>{if(!q)return true;const d=q.replace(/\D/g,''), m=q.toLowerCase();
+  return String(x.nombre||'').toLowerCase().includes(m)||String(x.codigo||'').toLowerCase().includes(m)||!!(d&&(String(x.pedido||'').includes(d)||String(x.ticket??'').includes(d)))};
+function bajarCsv(nombre,rows){
+  const t='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=`${nombre}-${hoyISO()}.csv`;a.click();
+}
+async function canjearFila(x,btn){
+  if(!confirm(`¿Entregar "${x.premio}" a ${x.nombre}?\n\n${origenPlano(x)} · código ${x.codigo}\n\nQueda marcado como canjeado.`))return;
+  if(btn)btn.disabled=true;
+  let r;try{r=await rpc('premios_canjear',{p_codigo:x.codigo})}catch(err){toast('Error: '+err.message);if(btn)btn.disabled=false;return}
+  toast({ok:`Canjeado ✓ ${x.premio}`,ya_canjeado:'Ojo: ya estaba canjeado',vencido:'Vencido: no se puede canjear',no_existe:'No existe'}[r.estado]||r.estado);
+  await cargarRuleta();
+}
+async function deshacerFila(x){
+  if(!confirm(`¿Deshacer el canje de "${x.premio}" (${x.nombre})? Vuelve a quedar por canjear.`))return;
+  try{await rpc('premios_deshacer_canje',{p_codigo:x.codigo})}catch(err){toast('Error: '+err.message);return}
+  toast('Canje deshecho');await cargarRuleta();
+}
+async function borrarFila(x,btn){
+  const js=RP.filter(j=>j.k===x.k), pend=js.filter(esPendiente).length, can=js.filter(j=>j.canjeado).length;
+  const det=[`${js.length} ${js.length===1?'jugada':'jugadas'}`];
+  if(pend)det.push(`${pend} ${pend===1?'premio sin canjear (deja de valer)':'premios sin canjear (dejan de valer)'}`);
+  if(can)det.push(`${can} ${can===1?'premio ya canjeado (sale del historial)':'premios ya canjeados (salen del historial)'}`);
+  if(!confirm(`¿Eliminar a ${x.nombre} (${telBonito(x.telefono)})?\n\nSe borran también: ${det.join(', ')}.\n\nNo se puede deshacer.`))return;
+  if(btn)btn.disabled=true;
+  let r;try{r=await rpc('premios_borrar_jugador',{p_telefono:x.telefono})}catch(err){toast('Error: '+err.message);if(btn)btn.disabled=false;return}
+  toast(r.estado==='ok'?`${x.nombre} eliminado`:'Ese jugador ya no existía');
+  await cargarRuleta();
+}
+// Una lista con un bloque por día. L: filas (de más nueva a más vieja) · fecha(x) · cab: <th>… · fila(x,i): <tr>… · resumen(filas)
+function porDia(cont,clave,L,{fecha,cab,fila,resumen,vacioHoy,todoAbierto}){
+  const hoy=hoyISO(), g=new Map();
+  L.forEach((x,i)=>{const d=diaDe(fecha(x));if(!g.has(d))g.set(d,[]);g.get(d).push([x,i])});
+  const dias=[...g.keys()].sort().reverse();
+  if(!todoAbierto&&!dias.includes(hoy))dias.unshift(hoy);   // hoy siempre está, aunque esté vacío
+  const mem=abiertosR[clave]=abiertosR[clave]||{};
+  cont.className='dias';
+  cont.innerHTML=dias.map(d=>{
+    const filas=g.get(d)||[], open=todoAbierto||(d in mem?mem[d]:d===hoy);
+    return`<details class="dia" data-d="${d}"${open?' open':''}><summary><b>${esc(nombreDia(d))}</b>${d===hoy?'<span class="hoy">Hoy</span>':''}<span class="r">${esc(resumen(filas.map(f=>f[0])))}</span></summary>${
+      filas.length?`<div class="tw"><table><thead><tr>${cab}</tr></thead><tbody>${filas.map(([x,i])=>fila(x,i)).join('')}</tbody></table></div>`:`<div class="empty">${esc(vacioHoy)}</div>`}</details>`;
+  }).join('');
+  if(!todoAbierto)cont.querySelectorAll('details.dia').forEach(el=>el.addEventListener('toggle',()=>{mem[el.dataset.d]=el.open}));
+}
+function subPendientes(){
+  $('#rpanel').innerHTML=`<div class="bar">${buscador('Buscar ticket, nombre o código')}<span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  rDraw=()=>{
+    const q=$('#q').value.trim(), hoy=hoyISO();
+    const L=RP.filter(esPendiente).filter(x=>coincide(x,q)).sort((a,b)=>a.vence.localeCompare(b.vence));
+    const venc=RP.filter(x=>x.codigo&&x.k!=null&&!x.canjeado&&x.vence<hoy).length;
+    $('#n').textContent=`${L.length} por canjear${venc?` · ${venc} vencidos`:''}`;
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Origen</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Vence</th><th></th></tr></thead><tbody>${
+      L.map((x,i)=>`<tr><td>${origenTxt(x)}</td><td>${quienTxt(x)}</td><td><b>${esc(x.premio)}</b></td>
+        <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${fFecha(x.vence)}</td>
+        <td class="act"><button class="btn ok mini" data-i="${i}">Canjear</button></td></tr>`).join('')
+    }</tbody></table>`:`<div class="empty">${q?'Nada con esa búsqueda.':'No hay premios por canjear.'}</div>`;
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>canjearFila(L[b.dataset.i],b));
+  };
+  $('#q').oninput=rDraw;rDraw();
+}
+function subCanjeados(){
+  $('#rpanel').innerHTML=`<div class="bar">${buscador('Buscar ticket, nombre o código')}${esAdmin?'<button class="btn sec" id="csv">Descargar CSV</button>':''}<span class="n" id="n"></span></div><div id="tw"></div>`;
+  let L=[];
+  rDraw=()=>{
+    const q=$('#q').value.trim();
+    L=RP.filter(x=>x.canjeado).filter(x=>coincide(x,q)).sort((a,b)=>b.canjeado.localeCompare(a.canjeado));
+    const mes=hoyISO().slice(0,7);
+    $('#n').textContent=`${L.length} canjeados · ${L.filter(x=>diaDe(x.canjeado).startsWith(mes)).length} este mes`;
+    porDia($('#tw'),'canjeados',L,{
+      fecha:x=>x.canjeado, todoAbierto:!!q,
+      cab:'<th>Hora</th><th>Origen</th><th>Cliente</th><th>Premio</th><th>Código</th><th>Ganado</th><th>Lo entregó</th><th></th>',
+      fila:(x,i)=>`<tr><td><b>${soloHora(x.canjeado)}</b></td><td>${origenTxt(x)}</td><td>${quienTxt(x)}</td><td>${esc(x.premio)}</td>
+        <td class="code">${esc(x.codigo)}</td><td>${fHora(x.creado)}</td><td>${esc(x.canjeado_por||'')}</td>
+        <td class="act">${(Date.now()-new Date(x.canjeado))<12*3600e3?`<button class="btn sec mini" data-i="${i}">Deshacer</button>`:''}</td></tr>`,
+      resumen:f=>f.length?`${f.length} ${f.length===1?'canjeado':'canjeados'}`:'',
+      vacioHoy:'Hoy todavía no se canjeó ningún premio.'});
+    if(q&&!L.length)$('#tw').innerHTML='<div class="empty">Nada con esa búsqueda.</div>';
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>deshacerFila(L[b.dataset.i]));
+  };
+  $('#q').oninput=rDraw;
+  if($('#csv'))$('#csv').onclick=()=>bajarCsv('terrys-canjeados',[['Canjeado','Origen','Dia jugada','Cliente','Movil','Premio','Codigo','Ganado','Lo entrego'],
+    ...L.map(x=>[fHora(x.canjeado),origenPlano(x),fFecha(x.dia||x.creado),x.nombre,x.telefono,x.premio,x.codigo,fHora(x.creado),x.canjeado_por||''])]);
+  rDraw();
+}
+function subJugadas(){
+  $('#rpanel').innerHTML=`<div class="bar">${buscador('Buscar ticket o nombre')}<select id="f" aria-label="Qué jugadas mostrar" style="width:auto">
+    <option value="">Todas</option><option value="gan">Con premio</option><option value="pend">Premios sin canjear</option><option value="can">Canjeados</option></select><span class="n" id="n"></span></div><div id="tw"></div>`;
+  rDraw=()=>{
+    const f=$('#f').value, hoy=hoyISO(), q=$('#q').value.trim();
+    const L=RP.filter(x=>coincide(x,q)).filter(x=>!f||(f==='gan'&&x.codigo)||(f==='pend'&&x.codigo&&!x.canjeado&&x.vence>=hoy)||(f==='can'&&x.canjeado));
+    const filtrando=!!(q||f);
+    $('#n').textContent=`${L.length} ${L.length===1?'jugada':'jugadas'}`;
+    porDia($('#tw'),'jugadas',L,{
+      fecha:x=>x.creado, todoAbierto:filtrando,
+      cab:'<th>Hora</th><th>Nombre</th><th>Ticket</th><th>Resultado</th><th>Código</th><th>Estado</th><th>Origen</th><th></th>',
+      fila:(x,i)=>{
+        const est=!x.codigo?'':x.canjeado?`<span class="pill can">Canjeado ${fFecha(x.canjeado)}</span>`:x.vence<hoy?'<span class="pill ven">Vencido</span>':`<span class="pill gan">Pendiente · vence ${fFecha(x.vence)}</span>`;
+        return`<tr><td>${soloHora(x.creado)}</td><td>${x.k!=null?quienTxt(x):'<span class="sub">Sin registrar</span>'}</td><td>${origenTxt(x,true)}</td><td>${x.codigo?`<b>${esc(x.premio)}</b>`:'<span class="sub">Sin premio</span>'}</td>
+          <td>${x.codigo?`<a href="#" class="code" data-c="${esc(x.codigo)}">${esc(x.codigo)}</a>`:''}</td><td>${est}</td><td>${esc(x.origen||'')}</td>
+          <td class="act">${esPendiente(x)?`<button class="btn ok mini" data-i="${i}">Canjear</button>`:''}</td></tr>`},
+      resumen:fl=>{if(!fl.length)return'';const g=fl.filter(x=>x.codigo).length;return`${fl.length} ${fl.length===1?'jugada':'jugadas'} · ${g} con premio`},
+      vacioHoy:'Hoy todavía no jugó nadie.'});
+    if(filtrando&&!L.length)$('#tw').innerHTML='<div class="empty">No hay jugadas con esa búsqueda.</div>';
+    document.querySelectorAll('#tw a[data-c]').forEach(a=>a.onclick=e=>{e.preventDefault();scrollTo({top:0,behavior:'smooth'});verCodigo(a.dataset.c)});
+    document.querySelectorAll('#tw button[data-i]').forEach(b=>b.onclick=()=>canjearFila(L[b.dataset.i],b));
+  };
+  $('#f').onchange=rDraw;$('#q').oninput=rDraw;rDraw();
+}
+function subJugadores(){
+  $('#rpanel').innerHTML=`<div class="bar"><input type="search" id="q" placeholder="${esAdmin?'Buscar nombre, móvil, email o ticket':'Buscar nombre o ticket'}" autocomplete="off"><label><input type="checkbox" id="sp"> Solo aceptan promos</label>
+    ${esAdmin?'<button class="btn sec" id="csv">Descargar CSV</button>':''}<span class="n" id="n"></span></div><div class="tw" id="tw"></div>`;
+  let L=[];
+  const ultimos=()=>{const u={};for(const x of RP)if(x.k!=null&&(x.pedido||x.ticket!=null)&&!u[x.k])u[x.k]=x;return u};   // RP va de más nueva a más vieja
+  rDraw=()=>{
+    const q=$('#q').value.trim().toLowerCase(), sp=$('#sp').checked, d=q.replace(/\D/g,'');
+    const peds={};for(const x of RP){const n=x.ticket!=null?String(x.ticket):x.pedido;if(n&&x.k!=null)(peds[x.k]=peds[x.k]||[]).push(n)}
+    L=RJ.filter(x=>(!sp||x.acepta_promos)&&(!q||[x.nombre,x.telefono,x.email].join(' ').toLowerCase().includes(q)||(d.length>=3&&(peds[x.k]||[]).includes(d))));
+    $('#n').textContent=`${L.length} de ${RJ.length}`;
+    const ult=ultimos();
+    $('#tw').innerHTML=L.length?`<table><thead><tr><th>Nombre</th><th>Último ticket</th><th>Móvil</th>${esAdmin?'<th>Email</th>':''}<th>Promos</th><th class="num">Tickets</th><th class="num">Tiros</th><th class="num">Jugadas</th><th class="num">Premios</th><th>Origen</th><th>Primera vez</th><th>Última</th>${esAdmin?'<th></th>':''}</tr></thead><tbody>${
+      L.slice(0,500).map((x,i)=>`<tr><td>${esc(x.nombre)}</td><td>${ult[x.k]?origenTxt(ult[x.k],true):''}</td>
+        <td>${x.telefono?`<a href="https://wa.me/${esc(String(x.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(telBonito(x.telefono))}</a>`:`<span class="sub">··· ${esc(x.tel3||'')}</span>`}</td>${esAdmin?`<td>${esc(x.email||'')}</td>`:''}
+        <td><span class="pill ${x.acepta_promos?'si':'no'}">${x.acepta_promos?'Sí':'No'}</span></td><td class="num"><b>${x.pedidos??0}</b></td><td class="num">${x.tiros??0}</td><td class="num">${x.jugadas}</td><td class="num">${x.premios}</td><td>${esc(x.origen||'')}</td><td>${fFecha(x.primera_jugada)}</td><td>${fHora(x.ultima_jugada)}</td>
+        ${esAdmin?`<td class="act"><button class="tacho" type="button" data-b="${i}" title="Eliminar jugador" aria-label="Eliminar a ${esc(x.nombre)}">${TACHO}</button></td>`:''}</tr>`).join('')
+    }</tbody></table>`:`<div class="empty">${RJ.length?'Nadie con esa búsqueda.':'Todavía no jugó nadie.'}</div>`;
+    document.querySelectorAll('#tw button[data-b]').forEach(b=>b.onclick=()=>borrarFila(L[b.dataset.b],b));
+  };
+  $('#q').oninput=rDraw;$('#sp').onchange=rDraw;
+  if($('#csv'))$('#csv').onclick=()=>{const ult=ultimos();
+    bajarCsv('terrys-jugadores',[['Nombre','Ultimo ticket','Movil','Email','Acepta promos','Pedidos','Tiros sin usar','Jugadas','Premios','Origen','Primera vez','Ultima jugada'],
+      ...L.map(x=>[x.nombre,ult[x.k]?origenPlano(ult[x.k]):'',x.telefono,x.email||'',x.acepta_promos?'Si':'No',x.pedidos??0,x.tiros??0,x.jugadas,x.premios,x.origen||'',fFecha(x.primera_jugada),fHora(x.ultima_jugada)])])};
+  rDraw();
+}
+// QR del flyer (solo admin). La librería se baja recién cuando se abre esta parte.
+function subQr(){
+  rDraw=null;
+  $('#rpanel').innerHTML=`<div class="qr"><div>
+      <p>Este es el QR que va en el flyer de los pedidos. Lleva a la ruleta. Con <b>origen</b> podés saber de dónde vino cada jugador (por ejemplo <i>flyer</i>, <i>glovo</i>, <i>mesa</i>): se guarda la primera vez que juega.</p>
+      <label for="qb">Dirección de la ruleta</label><input type="url" id="qb" value="${esc(URL_RULETA)}">
+      <label for="qo">Origen</label><input type="text" id="qo" value="flyer" maxlength="40">
+      <div class="bar" style="margin-top:14px"><button class="btn" id="png">Descargar PNG</button><button class="btn sec" id="svg">Descargar SVG (imprenta)</button></div>
+    </div><div><div class="qrbox" id="qrbox"></div><div class="qrurl" id="qrurl"></div></div></div>`;
+  let qr;
+  const draw=()=>{
+    if(!window.qrcode||!$('#qb'))return;
+    const o=$('#qo').value.replace(/[^\w-]/g,''), b=$('#qb').value.trim(), url=b+(o?((b.includes('?')?'&':'?')+'o='+o):'');
+    qr=qrcode(0,'M');qr.addData(url);qr.make();
+    const n=qr.getModuleCount(),m=4;let d='';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))d+=`M${c+m} ${r+m}h1v1h-1z`;
+    $('#qrbox').innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n+2*m} ${n+2*m}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#141311"/></svg>`;
+    $('#qrurl').textContent=url;
+  };
+  const bajar=(href,name)=>{const a=document.createElement('a');a.href=href;a.download=name;a.click()};
+  $('#qb').oninput=draw;$('#qo').oninput=draw;
+  $('#svg').onclick=()=>{if(qr)bajar(URL.createObjectURL(new Blob([$('#qrbox').innerHTML],{type:'image/svg+xml'})),'qr-terrys-premios.svg')};
+  $('#png').onclick=()=>{
+    if(!qr)return;
+    const n=qr.getModuleCount(),m=4,s=24,cv=document.createElement('canvas');cv.width=cv.height=(n+2*m)*s;
+    const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#141311';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))x.fillRect((c+m)*s,(r+m)*s,s,s);
+    bajar(cv.toDataURL('image/png'),'qr-terrys-premios.png');
+  };
+  if(window.qrcode)draw();
+  else{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';sc.onload=draw;
+    sc.onerror=()=>{if($('#qrbox'))$('#qrbox').innerHTML='<div class="empty" style="color:#141311">No se pudo cargar el generador de QR. Revisá la conexión.</div>'};document.head.appendChild(sc)}
 }
 async function verCodigo(raw,msg){
   const cod=normCodigo(raw), box=$('#cr');
@@ -391,12 +636,13 @@ async function verCodigo(raw,msg){
   const st=j.canjeado?`Ya canjeado el ${fHora(j.canjeado)}`:sinReg?'Sin registrar: el cliente todavía no se registró':vencido?`Vencido el ${fFecha(j.vence)}`:'Válido ✓';
   const recien=j.canjeado&&(Date.now()-new Date(j.canjeado))<12*3600e3;
   const origen=j.ticket!=null?`Ticket ${esc(j.ticket)}${j.fecha_ticket?' del '+fFecha(j.fecha_ticket):''}`:j.pedido?`Pedido #${esc(j.pedido)}`:'Bienvenida (folleto)';
+  const fila=RP.find(x=>x.codigo===j.codigo), tk=fila&&fila.ticket!=null&&RT[fila.k+'|'+fila.ticket];
   box.innerHTML=`<div class="tk ${cls}">
     <div class="st">${esc(msg||st)}</div><div class="prem">${esc(j.premio)}</div>
     <dt>Código</dt><dd class="code">${esc(j.codigo)}</dd>
     <dt>A nombre de</dt><dd>${esc(j.nombre||'')}</dd>
     <dt>Móvil</dt><dd>${j.registrado?`··· ${esc(j.tel3||'')} <span class="sub" style="font-weight:400">(pedile que te diga los últimos 3)</span>`:'—'}</dd>
-    <dt>Origen</dt><dd>${origen}</dd>
+    <dt>Origen</dt><dd>${origen}${tk&&tk.verif==='no'?'<div style="color:var(--danger);font-weight:600;margin-top:4px">Ojo: ese ticket no aparece en Ágora. Revisalo antes de entregar.</div>':''}</dd>
     <dt>Ganado</dt><dd>${esc(fHora(j.creado))}</dd>
     <dt>Vence</dt><dd>${esc(fFecha(j.vence))}</dd>
     ${j.canjeado&&j.canjeado_por?`<dt>Canjeó</dt><dd>${esc(j.canjeado_por)}</dd>`:''}
