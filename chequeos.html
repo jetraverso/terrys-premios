@@ -115,46 +115,50 @@ td.act{text-align:right}
 .aviso{padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);font-size:14px;margin-bottom:12px}
 
 /* Cierre de caja: arqueo por billetes y monedas, pensado para cargar con el dedo en el iPad */
-.cierre{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
-.caja{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
-.caja h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
-.fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
-.fila>.et{width:56px;flex:none;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.cierre{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
+.caja{padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.caja h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 0 5px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.caja h3 .lnk{text-transform:none;letter-spacing:0;font-weight:500}
+.filas{display:flex;flex-wrap:wrap;gap:0 22px}
+.cab{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;flex-wrap:wrap}
+.fila{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin-top:10px}
+.fila>.et{flex:none;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
-.seg button{min-height:48px;padding:0 20px;border:0;background:none;color:var(--ink-2);font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation}
+.seg button{min-height:42px;padding:0 18px;border:0;background:none;color:var(--ink-2);font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation}
 .seg button+button{border-left:1px solid var(--line-2)}
 .seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;border-radius:14px}
 .chips.falta{outline:2px solid var(--out);outline-offset:4px}
-.chip{min-height:48px;padding:0 18px;border-radius:12px;border:1px solid var(--line-2);background:none;color:var(--ink-2);font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;box-shadow:inset 0 -3px 0 var(--u,transparent)}
+.chip{min-height:42px;padding:0 18px;border-radius:12px;border:1px solid var(--line-2);background:none;color:var(--ink-2);font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;box-shadow:inset 0 -3px 0 var(--u,transparent)}
 .chip[aria-pressed=true]{background:var(--u,var(--ink));color:#141311;border-color:transparent}
 .chip.otro{border-style:dashed;font-weight:600;box-shadow:none}
-.fechanav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.fechanav button{width:48px;height:48px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);font-size:24px;line-height:1;cursor:pointer;touch-action:manipulation}
+.fechanav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.fechanav button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);font-size:22px;line-height:1;cursor:pointer;touch-action:manipulation}
 .fechanav button:disabled{opacity:.35;cursor:default}
-.fechanav input[type=date]{width:auto;min-height:48px;font-weight:700;font-size:16px}
-.fechanav .cual{color:var(--ink-2);font-size:14px;margin-left:4px}
-.estado-form{margin-top:12px;font-size:14px;padding:9px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+.fechanav input[type=date]{width:auto;min-height:40px;padding:6px 10px;font-weight:700;font-size:15px}
+.fechanav .cual{color:var(--ink-2);font-size:14px;margin-right:4px}
+.estado-form{margin-top:10px;font-size:13px;padding:7px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
 .estado-form:empty{display:none}
-.dens{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:8px}
-.den{display:grid;grid-template-columns:70px 48px minmax(52px,1fr) 48px 92px;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+/* Dos columnas que se leen de arriba abajo: 200·100·50 a la izquierda y 20·10·5 a la derecha (igual las monedas) */
+.dens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:column;gap:5px 8px}
+.dens.b{grid-template-rows:repeat(3,auto)} .dens.m{grid-template-rows:repeat(4,auto)}
+.den{display:grid;grid-template-columns:60px 44px minmax(40px,1fr) 44px minmax(64px,auto);align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
 .den.act{border-color:var(--out)}
-.den .dv{font-family:var(--display);font-size:26px;letter-spacing:.03em;line-height:1;white-space:nowrap}
-.den .pm{width:48px;height:48px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);font-size:26px;line-height:1;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.den .dv{font-family:var(--display);font-size:23px;letter-spacing:.03em;line-height:1;white-space:nowrap}
+.den .pm{width:44px;height:38px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);font-size:24px;line-height:1;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .den .pm:active,.tecl .keys button:active{background:var(--line-2)}
-.den .dn{height:48px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;touch-action:manipulation}
-.den .di{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:14px;white-space:nowrap}
+.den .dn{height:38px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;touch-action:manipulation}
+.den .di{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px;white-space:nowrap}
 .den.cero .dn{color:var(--muted);font-weight:500} .den.cero .di{color:var(--muted)}
-.caja .pie{margin-top:14px;text-align:right}
-.resumen{position:sticky;top:12px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.resumen{position:sticky;top:12px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
 .resumen .k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.resumen .tot{font-family:var(--display);font-size:54px;line-height:1;margin-top:4px;font-variant-numeric:tabular-nums}
+.resumen .tot{font-family:var(--display);font-size:48px;line-height:1;margin-top:4px;font-variant-numeric:tabular-nums}
 .resumen .partes{font-size:13px;color:var(--ink-2);margin-top:6px}
 .veredicto{margin-top:14px;padding:12px;border-radius:12px;text-align:center;font-family:var(--display);font-size:26px;letter-spacing:.03em;line-height:1.05}
 .veredicto small{display:block;font-family:var(--body);font-size:13px;letter-spacing:0;margin-top:4px;font-weight:600}
 .veredicto.ok{background:var(--ok-soft);color:var(--ok)} .veredicto.mal{background:var(--out-soft);color:var(--danger)} .veredicto.nada{background:var(--surface-2);color:var(--ink-2)}
-.resumen .btn{width:100%;margin-top:14px;min-height:56px;font-size:18px}
-@media (max-width:900px){
+.resumen .btn{width:100%;margin-top:12px;min-height:52px;font-size:18px}
+@media (max-width:980px){
   .cierre{grid-template-columns:1fr}
   .resumen{top:auto;bottom:8px;z-index:5;display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:12px 14px;box-shadow:0 -10px 28px rgba(0,0,0,.55)}
   .resumen .tot{font-size:40px}
@@ -162,11 +166,15 @@ td.act{text-align:right}
   .resumen .veredicto small{display:inline;margin-left:6px}
   .resumen .btn{width:auto;margin-top:0;padding:0 22px}
 }
+@media (max-width:680px){
+  .dens,.dens.b,.dens.m{grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none}
+}
 @media (max-width:420px){
   .caja{padding:12px}
-  .den{grid-template-columns:54px 44px minmax(40px,1fr) 44px 72px;gap:5px;padding:6px}
-  .den .dv{font-size:22px} .den .pm{width:44px} .den .di{font-size:13px}
+  .den{grid-template-columns:54px 44px minmax(40px,1fr) 44px minmax(64px,auto);gap:5px;padding:4px 6px}
+  .den .dv{font-size:21px}
   .fila>.et{width:100%}
+  .fechanav{justify-content:flex-start}
 }
 /* Teclado propio en pantalla (no abre el del iPad) */
 .tecl{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.62);display:grid;place-items:center;padding:16px}
@@ -254,7 +262,7 @@ function demoRpc(fn,a){
       r(0,'21:30',2,'Pau','+34633444555','pendiente',null),r(1,'14:00',3,'Iñaki','+34644555666','pendiente','Uno celíaco'),r(3,'20:30',12,'Empresa Nubo','+34655666777','confirmada','Terraza si se puede')];
   }
   let A=dLeer('tp_demo_arqueos',null);
-  if(!A){const ay=sumarDias(hoy,-1), ah=new Date().toISOString(), m=(tu,p,t)=>({id:Math.random(),fecha:ay,turno:tu,estado:'cierre',usuario:'Magui',piezas:p,total:t,creado:ah,creado_por:'demo',actualizado:ah,actualizado_por:'demo'});
+  if(!A){const ay=sumarDias(hoy,-1), ah=new Date().toISOString(), m=(tu,p,t)=>({id:Math.random(),fecha:ay,turno:tu,estado:'cierre',usuario:'Matías',piezas:p,total:t,creado:ah,creado_por:'demo',actualizado:ah,actualizado_por:'demo'});
     A=[m('dia',{50:11,20:9,10:7,5:4,1:4,0.5:2,0.2:12,0.1:10},828.4),m('noche',{50:2,20:9,10:7,5:4,1:4,0.5:2,0.2:12,0.1:10},378.4)];dGuardar('tp_demo_arqueos',A)}
   const esAdm=QS.get('demo')==='admin', ordD=x=>x.fecha+(x.turno==='noche'?'1':'0')+(x.estado==='cierre'?'1':'0');
   if(fn==='chequeos_arqueos')return{arqueos:[...A].sort((x,y)=>ordD(y).localeCompare(ordD(x))),usuarios:[...new Set(A.map(x=>x.usuario))],admin:esAdm};
@@ -455,7 +463,7 @@ const DENS=[200,100,50,20,10,5,2,1,0.5,0.2,0.1,0.05,0.02,0.01];
 const dNom=d=>d>=1?d+' €':d.toFixed(2).replace('.',',')+' €';
 const dQue=d=>(d>=5?'Billetes de ':'Monedas de ')+dNom(d);
 const TUR={dia:'Día',noche:'Noche'}, EST={apertura:'Apertura',cierre:'Cierre'};
-const USU_BASE=['Juan','Magui','Matías'];
+const USU_BASE=['Juan','Matías'];   // los demás se suman con «+ Otro» y quedan guardados con su primer arqueo
 const COLOR_U={juan:'#5cb47f',magui:'#f2c14e',matias:'#5c9fc4'}, COLOR_X=['#e0693f','#c58fd6','#7fd0c2','#d9a37f'];
 const sinTilde=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 let ARQ=[], USUARIOS=[...USU_BASE], formSucio=false, sel=null, pz={}, quien='';
@@ -484,18 +492,15 @@ function tabCierres(){
     <span class="di">0,00 €</span></div>`;
   $('#panel').innerHTML=`<div class="cierre">
     <section class="caja" id="cf">
-      <h2>Arqueo de caja</h2>
-      <div class="fila"><span class="et">Día</span><div class="fechanav">
-        <button type="button" id="fAnt" aria-label="Día anterior">‹</button><input type="date" id="f_fecha" aria-label="Fecha del arqueo"><button type="button" id="fSig" aria-label="Día siguiente">›</button>
-        <span class="cual" id="fCual"></span></div></div>
-      <div class="fila"><span class="et">Turno</span>
+      <div class="cab"><h2>Arqueo de caja</h2><div class="fechanav"><span class="cual" id="fCual"></span>
+        <button type="button" id="fAnt" aria-label="Día anterior">‹</button><input type="date" id="f_fecha" aria-label="Fecha del arqueo"><button type="button" id="fSig" aria-label="Día siguiente">›</button></div></div>
+      <div class="filas"><div class="fila"><span class="et">Turno</span>
         <div class="seg" id="segTu">${Object.entries(TUR).map(([k,v])=>`<button type="button" data-tu="${k}">${v}</button>`).join('')}</div>
         <div class="seg" id="segEs">${Object.entries(EST).map(([k,v])=>`<button type="button" data-es="${k}">${v}</button>`).join('')}</div></div>
-      <div class="fila"><span class="et">Quién</span><div class="chips" id="chips"></div></div>
+      <div class="fila"><span class="et">Quién</span><div class="chips" id="chips"></div></div></div>
       <div class="estado-form" id="estadoForm"></div>
-      <h3>Billetes</h3><div class="dens">${DENS.filter(d=>d>=5).map(fila).join('')}</div>
-      <h3>Monedas</h3><div class="dens">${DENS.filter(d=>d<5).map(fila).join('')}</div>
-      <div class="pie"><button type="button" class="lnk" id="aCero">Poner todo en 0</button></div>
+      <h3>Billetes <button type="button" class="lnk" id="aCero">Poner todo en 0</button></h3><div class="dens b">${DENS.filter(d=>d>=5).map(fila).join('')}</div>
+      <h3>Monedas</h3><div class="dens m">${DENS.filter(d=>d<5).map(fila).join('')}</div>
     </section>
     <aside class="resumen" id="resumen"></aside>
   </div>
